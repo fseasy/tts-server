@@ -5,17 +5,17 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from starlette.middleware.cors import CORSMiddleware
-
-from fs_tts_server import config
 from fs_tts_server.exceptions import ApiBaseException
 from fs_tts_server.repositories import lifespan_db
 from fs_tts_server.route_stat import RouteStatsMiddleware
 from fs_tts_server.routes import admin_router, internal_auth_router, user_router
+from starlette.middleware.cors import CORSMiddleware
+
+from fs_tts_server import config
 
 logger = config.LOGGER
 
-logger.info("Init Supertokens")
+logger.info("Init TTS server")
 
 
 def _init_stripe() -> None:

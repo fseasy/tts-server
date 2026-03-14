@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import event
 from sqlalchemy import DateTime, Dialect, String, Text, TypeDecorator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -17,6 +18,41 @@ def get_db_root_dir() -> Path:
   _db_dir = Path(__file__).parent
 
   return _db_dir.absolute()
+
+
+class CachedAudioFile:
+  @staticmethod
+  def gen_relpath(id: str, project: str) -> str:
+    """File Structure:
+    /audios
+    /project
+    /${id[:2]}
+    /${id[2:]}.mp3
+    """
+    slice_dir_name, fname = id[:2], id[2:]
+    return f"audios/{project}/{slice_dir_name}/{fname}.mp3"
+
+  @staticmethod
+  def add(id: str, project: str, mp3_bytes: bytes) -> str:
+    """Write bytes to file, return the relative-path to the db root dir
+    Exceptions: any possible IO related exceptions
+    """
+    root_path = get_db_root_dir()
+    relpath = CachedAudioFile.gen_relpath(id, project=project)
+    full_path = root_path / relpath
+    full_path.parent.mkdir(parents=True, exist_ok=True)
+    full_path.write_bytes(mp3_bytes)
+    return relpath
+
+  @staticmethod
+  def remove(relpath: str) -> bool:
+    """Use `remove` as del is a python lang keyword"""
+    root_path = get_db_root_dir()
+    fullpath = root_path / relpath
+    if not fullpath.exists():
+      return False
+    fullpath.unlink()
+    return True
 
 
 # Define enums
@@ -34,8 +70,28 @@ def _get_sqlite_db_async_path() -> str:
 
 
 # you can set `echo=True` for debug
-async_engine = create_async_engine(_get_sqlite_db_async_path())
+async_engine = create_async_engine(_get_sqlite_db_async_path(), connect_args={"timeout": 30, "autocommit": False})
 """Async engine"""
+
+
+@event.listens_for(async_engine.sync_engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+  """For Sqlite"""
+  dbapi_connection.isolation_level = None  # disable auto begin
+  # 注意这里使用 sync_engine 的事件
+  cursor = dbapi_connection.cursor()
+  cursor.execute("PRAGMA journal_mode=WAL")
+  cursor.execute("PRAGMA synchronous=NORMAL")
+  cursor.execute("PRAGMA cache_size=-4000")
+  cursor.execute("PRAGMA temp_store=MEMORY")
+  cursor.close()
+  del connection_record
+
+
+@event.listens_for(async_engine.sync_engine, "begin")
+def do_begin(conn):
+  conn.exec_driver_sql("BEGIN")
+
 
 AsyncSessionLocal = async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 """Async Session maker instance"""
@@ -67,7 +123,7 @@ class StrEnumDecorator(TypeDecorator):  # type: ignore
     return self.enum_class(value)
 
 
-class TZDateTime(TypeDecorator):
+class TZDateTime(TypeDecorator[datetime]):
   """Save & Load always keep the UTC tz.
   - in DB: no tz info
   - in application: always has tz
@@ -108,7 +164,8 @@ class DbBaseModel(DeclarativeBase):
 class CachedTts(DbBaseModel):
   __tablename__ = "cached_tts"
 
-  id: Mapped[str] = mapped_column(String(36), primary_key=True)
+  id: Mapped[str] = mapped_column(String(40), primary_key=True)
+  """sha1 hex str, length = 40"""
   text: Mapped[str] = mapped_column(Text)
   project: Mapped[str] = mapped_column(String(30), index=True)
   tts_model: Mapped[TtsModel] = mapped_column(StrEnumDecorator(TtsModel), index=True)
