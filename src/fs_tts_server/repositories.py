@@ -38,7 +38,10 @@ async def lifespan_db(_: "FastAPI | None") -> AsyncGenerator[Any, None]:
   await dispose_engine()  # dispose db after app close!
 
 
-def gen_cached_tts_id(text: str, project: str, tts_model: TtsModel, version: Literal["v1"]) -> str:
+TtsIdGenFnVersionT = Literal["v1"]
+
+
+def gen_cached_tts_id(text: str, project: str, tts_model: TtsModel, version: TtsIdGenFnVersionT) -> str:
   import hashlib
 
   text_hash = hashlib.sha1(text.encode(errors="replace")).hexdigest()
@@ -58,7 +61,7 @@ async def async_create_or_update_cached_tts(
   """Will create or update the cached tts record.
   Try to use upsert to keep the atomic.
   """
-  relpath = CachedAudioFile.add(id=id, project=project, mp3_bytes=audio_mp3_bytes)
+  relpath = await CachedAudioFile.add(id=id, project=project, mp3_bytes=audio_mp3_bytes)
   record_data = {"id": id, "text": text, "project": project, "tts_model": tts_model, "audio_path": relpath}
   record = CachedTts(**record_data)
   # 动态获取当前数据库的 dialect 并处理
@@ -106,15 +109,16 @@ async def async_del_cached_tts(
   if record is None:
     return
   # 1. first delete audio
-  CachedAudioFile.remove(record.audio_path)
+  await CachedAudioFile.remove(record.audio_path)
   # 2. delete record
   await session.delete(record)
   if do_commit:
     await session.commit()
 
 
-async def async_get_project_all_cached_tts(session: AsyncSession, project: str) -> list[CachedTts]:
+async def async_get_project_all_cached_tts(session: AsyncSession, project: str) -> AsyncGenerator[CachedTts, None]:
   """Not safe it cache tts table for this project is too big. But it't ok currently"""
-  stmt = select(CachedTts)
-  result = await session.execute(stmt)
-  return list(result.scalars().all())
+  stmt = select(CachedTts).where(CachedTts.project == project)
+  result = await session.stream_scalars(stmt)
+  async for r in result:
+    yield r

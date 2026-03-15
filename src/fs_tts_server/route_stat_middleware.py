@@ -35,17 +35,6 @@ class RouteStatsMiddleware(BaseHTTPMiddleware):
     # 计算耗时 (s)
     process_time = time.perf_counter() - start_time
 
-    # 尝试获取 Supertokens 的 UserID
-    # 前提：Supertokens 验证成功后，通常你会把 user_id 放在 request.state 里
-    # 或者你可以在这里通过 session 对象获取，具体取决于你的业务代码如何传递用户信息
-    user_id = "guest"
-    try:
-      # Supertokens 验证成功后，通常可以在这里找到 session
-      user_id = request.session.get_user_id()  # type: ignore
-    except Exception:
-      # 如果没登录，或者提取失败，就还是 guest，不要让日志逻辑搞崩服务
-      pass
-
     # 获取 IP (处理一些代理情况，防止报错)
     client_ip = request.client.host if request.client else "unknown"
 
@@ -58,7 +47,6 @@ class RouteStatsMiddleware(BaseHTTPMiddleware):
       "status": status_code,
       "request_time": round(process_time, 2),  # align the name to the Nginx
       "ip": client_ip,
-      "user_id": user_id,
     }
 
     # 如果有异常信息，也可以加进去

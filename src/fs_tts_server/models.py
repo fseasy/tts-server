@@ -1,26 +1,33 @@
+import asyncio
+import subprocess
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import event
-from sqlalchemy import DateTime, Dialect, String, Text, TypeDecorator
+from sqlalchemy import DateTime, Dialect, String, Text, TypeDecorator, event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from .config.data_types import TtsModel
 from .exceptions import LogicError
 from .utils import safe_strftime
 
 
 def get_db_root_dir() -> Path:
   """Root dir for db"""
-  _db_dir = Path(__file__).parent
+  # file structure: ${root}/src/fs_tts_server/models.py
+  _db_dir = Path(__file__).parent.parent.parent / "db"
 
   return _db_dir.absolute()
 
 
 class CachedAudioFile:
+  @staticmethod
+  def get_fullpath(relpath: str) -> Path:
+    return (get_db_root_dir() / relpath).resolve()
+
   @staticmethod
   def gen_relpath(id: str, project: str) -> str:
     """File Structure:
@@ -33,35 +40,52 @@ class CachedAudioFile:
     return f"audios/{project}/{slice_dir_name}/{fname}.mp3"
 
   @staticmethod
-  def add(id: str, project: str, mp3_bytes: bytes) -> str:
+  async def add(id: str, project: str, mp3_bytes: bytes) -> str:
     """Write bytes to file, return the relative-path to the db root dir
     Exceptions: any possible IO related exceptions
     """
     root_path = get_db_root_dir()
     relpath = CachedAudioFile.gen_relpath(id, project=project)
     full_path = root_path / relpath
-    full_path.parent.mkdir(parents=True, exist_ok=True)
-    full_path.write_bytes(mp3_bytes)
+
+    def _write() -> None:
+      full_path.parent.mkdir(parents=True, exist_ok=True)
+      full_path.write_bytes(mp3_bytes)
+
+    await asyncio.to_thread(_write)
     return relpath
 
   @staticmethod
-  def remove(relpath: str) -> bool:
+  async def remove(relpath: str) -> bool:
     """Use `remove` as del is a python lang keyword"""
     root_path = get_db_root_dir()
     fullpath = root_path / relpath
-    if not fullpath.exists():
-      return False
-    fullpath.unlink()
-    return True
 
+    def _unlink() -> bool:
+      if not fullpath.exists():
+        return False
+      fullpath.unlink()
+      return True
 
-# Define enums
-class TtsModel(StrEnum):
-  PUBLIC = "public"
+    return await asyncio.to_thread(_unlink)
 
-  def locale_name(self) -> str:
-    m = {TtsModel.PUBLIC: "公共"}
-    return m[self]
+  @staticmethod
+  async def is_valid_audio(relpath: str) -> bool:
+    """1. path exists 2. audio content is valid"""
+    fullpath = CachedAudioFile.get_fullpath(relpath)
+
+    def _check() -> bool:
+      if not fullpath.exists():
+        return False
+      # decode audio to test if it's fully valid
+      cmd = ["ffmpeg", "-v", "error", "-i", str(fullpath), "-f", "null", "-"]
+      try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        return result.returncode == 0
+      except Exception:
+        return False
+
+    return await asyncio.to_thread(_check)
 
 
 def _get_sqlite_db_async_path() -> str:
@@ -70,31 +94,51 @@ def _get_sqlite_db_async_path() -> str:
 
 
 # you can set `echo=True` for debug
-async_engine = create_async_engine(_get_sqlite_db_async_path(), connect_args={"timeout": 30, "autocommit": False})
+async_engine = create_async_engine(
+  _get_sqlite_db_async_path(),
+  connect_args={"timeout": 30},  # You must remove  `"autocommit": False` or it will raise exception
+)
 """Async engine"""
 
 
 @event.listens_for(async_engine.sync_engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
   """For Sqlite"""
-  dbapi_connection.isolation_level = None  # disable auto begin
-  # 注意这里使用 sync_engine 的事件
+  # 2. 依赖这里的 isolation_level = None 来禁用底层的隐式事务
+  dbapi_connection.isolation_level = None
   cursor = dbapi_connection.cursor()
-  cursor.execute("PRAGMA journal_mode=WAL")
-  cursor.execute("PRAGMA synchronous=NORMAL")
   cursor.execute("PRAGMA cache_size=-4000")
   cursor.execute("PRAGMA temp_store=MEMORY")
+  cursor.execute("PRAGMA journal_mode=WAL")
+  cursor.execute("PRAGMA synchronous=NORMAL")
+  cursor.execute("PRAGMA busy_timeout=5000")
   cursor.close()
   del connection_record
 
 
 @event.listens_for(async_engine.sync_engine, "begin")
 def do_begin(conn):
+  # 3. 交由 SQLAlchemy 在需要写操作时接管事务
   conn.exec_driver_sql("BEGIN")
 
 
 AsyncSessionLocal = async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 """Async Session maker instance"""
+
+
+async def create_all_tables() -> None:
+  async with async_engine.begin() as conn:
+    await conn.run_sync(DbBaseModel.metadata.create_all)
+
+
+async def drop_all_tables() -> None:
+  async with async_engine.begin() as conn:
+    await conn.run_sync(DbBaseModel.metadata.drop_all)
+
+
+async def dispose_engine() -> None:
+  """Call this when you need to exit the APP! or the app will hang forever!"""
+  await async_engine.dispose()
 
 
 class StrEnumDecorator(TypeDecorator):  # type: ignore
@@ -186,18 +230,3 @@ class CachedTts(DbBaseModel):
       f", updated_at=[{safe_strftime(self.updated_at)}]"
       ")"
     )
-
-
-async def create_all_tables() -> None:
-  async with async_engine.begin() as conn:
-    await conn.run_sync(DbBaseModel.metadata.create_all)
-
-
-async def drop_all_tables() -> None:
-  async with async_engine.begin() as conn:
-    await conn.run_sync(DbBaseModel.metadata.drop_all)
-
-
-async def dispose_engine() -> None:
-  """Call this when you need to exit the APP! or the app will hang forever!"""
-  await async_engine.dispose()

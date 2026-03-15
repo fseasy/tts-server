@@ -1,11 +1,12 @@
 [project]
 name = "fs-tts-server"
-version = "0.1.0"
+version = "1.0.0"
 description = "A web server for TTS, mainly used for fseasy application scope."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "aiosqlite>=0.22.1",
+  "edge-tts>=7.2.7",
   "fastapi[standard-no-fastapi-cloud-cli]>=0.135.1",
   "fs-pyutils",
   "gunicorn>=25.1.0",
