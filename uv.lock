@@ -364,11 +364,11 @@ wheels = [
 [[package]]
 name = "fs-pyutils"
 version = "1.0.0"
-source = { git = "https://github.com/fseasy/fs-pyutils.git#6344aab8c4970b20d08c21ed6d6661a44a24c0db" }
+source = { git = "https://github.com/fseasy/fs-pyutils.git#e7b3a485e3702761dfe98da50b151ed6a145303b" }
 
 [[package]]
 name = "fs-tts-server"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
@@ -376,6 +376,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard-no-fastapi-cloud-cli"] },
     { name = "fs-pyutils" },
     { name = "gunicorn" },
+    { name = "httpx" },
     { name = "sqlalchemy", extra = ["asyncio"] },
 ]
 
@@ -394,6 +395,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard-no-fastapi-cloud-cli"], specifier = ">=0.135.1" },
     { name = "fs-pyutils", git = "https://github.com/fseasy/fs-pyutils.git" },
     { name = "gunicorn", specifier = ">=25.1.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.48" },
 ]
 

@@ -1,11 +1,12 @@
+from typing import Any
 from ..config import CONF, LOGGER as logger
 from ..config.data_types import TtsModel
 from ..exceptions import LogicError
-from .base import TtsProvider
+from .base import TtsProvider, TtsBaseOption
 
 
 class TtsProviderFactory:
-  _instances: dict[TtsModel, TtsProvider] = {}
+  _instances: dict[TtsModel, TtsProvider[Any]] = {}
 
   @classmethod
   def init(cls) -> None:
@@ -28,5 +29,4 @@ class TtsProviderFactory:
 
   @classmethod
   def get_provider(cls, model: TtsModel) -> TtsProvider | None:
-    m = model.actual_impl()
-    return cls._instances.get(m, None)
+    return cls._instances.get(model, None)

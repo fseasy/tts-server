@@ -28,19 +28,18 @@ cached_tts_router = APIRouter(prefix="/cached-tts", tags=["CachedTts"])
 
 
 class CachedTtsBaseReq(BaseModel):
+  id_version: TtsIdGenFnVersionT = "v1"
   text: str
   project: str
-  tts_model: TtsModel
-  version: TtsIdGenFnVersionT = "v1"
 
 
-@cached_tts_router.get("/gen")
+@cached_tts_router.post("/gen")
 async def gen_cached_tts(
   req: CachedTtsBaseReq,
   db_session: AsyncSession = Depends(get_db_async_session),
 ) -> FileResponse:
   """Return Audio stream if audio exists"""
-  id = gen_cached_tts_id(text=req.text, project=req.project, tts_model=req.tts_model, version=req.version)
+  id = gen_cached_tts_id(text=req.text, project=req.project, id_version=req.id_version)
   data = await async_get_cached_tts(session=db_session, id=id)
   if not data:
     raise HTTPException(status_code=404, detail=f"id {id} not exist in db")
@@ -58,10 +57,10 @@ async def add_cached_tts(
   project: str = Form(...),
   tts_model: TtsModel = Form(...),
   mp3_audio_file: UploadFile = File(...),
-  version: TtsIdGenFnVersionT = Form("v1"),
+  id_version: TtsIdGenFnVersionT = Form("v1"),
 ) -> Response:
   audio_mp3_bytes = await mp3_audio_file.read()
-  id = gen_cached_tts_id(text=text, project=project, tts_model=tts_model, version=version)
+  id = gen_cached_tts_id(text=text, project=project, id_version=id_version)
   await async_create_or_update_cached_tts(
     session=db_session, id=id, text=text, project=project, tts_model=tts_model, audio_mp3_bytes=audio_mp3_bytes
   )
@@ -73,7 +72,7 @@ async def del_cached_tts(
   req: CachedTtsBaseReq,
   db_session: AsyncSession = Depends(get_db_async_session),
 ) -> Response:
-  id = gen_cached_tts_id(text=req.text, project=req.project, tts_model=req.tts_model, version=req.version)
+  id = gen_cached_tts_id(text=req.text, project=req.project, id_version=req.id_version)
   await async_del_cached_tts(session=db_session, id=id)
   return Response(content=f"del id={id}", status_code=200)
 
@@ -95,7 +94,7 @@ async def list_cached_tts(
 
     async def fetch_tts_stream():
       async with httpx.AsyncClient() as client:
-        async with client.stream("POST", "http://your-api/list", json={"project": "test"}) as response:
+        async with client.stream("GET", "http://your-api/list", json={"project": "test"}) as response:
           async for line in response.aiter_lines():
             if line:
               data = json.loads(line)

@@ -41,11 +41,22 @@ async def lifespan_db(_: "FastAPI | None") -> AsyncGenerator[Any, None]:
 TtsIdGenFnVersionT = Literal["v1"]
 
 
-def gen_cached_tts_id(text: str, project: str, tts_model: TtsModel, version: TtsIdGenFnVersionT) -> str:
+def clean_tts_text(text: str) -> str:
+  """Clean tts text before calculate id or save to db"""
+  return text.strip()  # a simple preprocess
+
+
+def gen_cached_tts_id(id_version: TtsIdGenFnVersionT, text: str, project: str) -> str:
+  """The tts-id calculation is very important for cached-tts lookup.
+  v1: only consider the (text, project), you can view it each (text, project) can only have 1 tts result.
+      it's should be like a `default` tts-model result.
+  """
   import hashlib
 
+  text = clean_tts_text(text)
   text_hash = hashlib.sha1(text.encode(errors="replace")).hexdigest()
-  sig = f"{version}{text_hash}{project}{tts_model.name}"
+  assert id_version == "v1"
+  sig = f"{text_hash}{project}"
   return hashlib.sha1(sig.encode()).hexdigest()
 
 
@@ -62,7 +73,13 @@ async def async_create_or_update_cached_tts(
   Try to use upsert to keep the atomic.
   """
   relpath = await CachedAudioFile.add(id=id, project=project, mp3_bytes=audio_mp3_bytes)
-  record_data = {"id": id, "text": text, "project": project, "tts_model": tts_model, "audio_path": relpath}
+  record_data = {
+    "id": id,
+    "text": clean_tts_text(text),
+    "project": project,
+    "tts_model": tts_model,
+    "audio_path": relpath,
+  }
   record = CachedTts(**record_data)
   # 动态获取当前数据库的 dialect 并处理
   dialect = session.bind.dialect.name

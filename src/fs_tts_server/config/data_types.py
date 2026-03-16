@@ -12,14 +12,7 @@ class Env(StrEnum):
 
 # Define enums
 class TtsModel(StrEnum):
-  LIGHT_WEIGHT = "light_weight"
-  """A semantic model name"""
-
   EDGE = "edge"  # edge-tts. Thank you.
-
-  def actual_impl(self) -> "TtsModel":
-    _m = {TtsModel.LIGHT_WEIGHT: TtsModel.EDGE}  #! currently, light-weight points to EDGE
-    return _m.get(self, self)
 
 
 class TtsBaseOption(BaseModel): ...
@@ -46,4 +39,3 @@ class AppConf(BaseModel):
   syslog_addr: tuple[str, int] = ("127.0.0.1", 11514)
   auth_apikey: str
   enabled_tts_provider2option: dict[TtsModel, TtsBaseOption]
-  """Note, here you just need to define the actual impl options that you want to enable"""
