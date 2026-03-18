@@ -35,6 +35,8 @@ class AppConf(BaseModel):
   app_name: str = "tts-server"
   app_domain: str
   """Used for logger"""
+  cors_allow_origin_regex: str
+  """For CORS, an example: https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)? """
   log_level: int = logging.INFO
   syslog_addr: tuple[str, int] = ("127.0.0.1", 11514)
   auth_apikey: str

@@ -4,6 +4,7 @@ from typing import Any
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from fs_tts_server.config import CONF, LOGGER as logger
@@ -31,6 +32,15 @@ async def lifespan_main(app: FastAPI) -> AsyncGenerator[Any, None]:
 
 
 app = FastAPI(title=f"{CONF.app_name}-backend", lifespan=lifespan_main)
+
+# CORS, or 405
+app.add_middleware(
+  CORSMiddleware,
+  allow_origin_regex=CONF.cors_allow_origin_regex,
+  allow_credentials=True,
+  allow_methods=["*"],  # 允许所有方法，包括 OPTIONS
+  allow_headers=["*"],  # 允许所有头，包括 Content-Type
+)
 
 # start apis. NOTE: we've added the same prefix for all our self-hosted api! (for nginx routing!)
 app.include_router(cached_tts_router)
