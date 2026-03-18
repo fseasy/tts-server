@@ -1,3 +1,13 @@
+## 26.03.19
+
+### systemd conf 不支持行尾注释！
+
+```
+Type=simple # change to simple as LLM suggesting 这个怎么报错了
+```
+
+这种要报错！
+
 ## 26.03.17
 
 ### 跨域 preflight 
