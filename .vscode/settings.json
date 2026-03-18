@@ -1,6 +1,9 @@
 {
   "cSpell.words": [
     "apikey",
+    "fname",
+    "fpath",
+    "gunicorn",
     "pyutils"
   ]
 }

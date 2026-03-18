@@ -1,0 +1,24 @@
+name: Release update to VPS
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Execute remote ssh commands
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            cd ${{ secrets.VPS_DEPLOY_RUN_DIR }}
+            # update the repo first
+            git fetch origin --prune && git checkout release && git reset --hard origin/release
+            ./project_init_and_update.sh

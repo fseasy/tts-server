@@ -9,4 +9,4 @@ cleanup() {
 }
 
 
-ENV=dev uv run uvicorn fs_tts_server.main:app --reload --port 3101
+ENV=dev uv run uvicorn fs_tts_server.main:app --reload --port 6001

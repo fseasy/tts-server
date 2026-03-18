@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # install uv for python (only if not installed)
 if ! command -v uv &> /dev/null; then
     echo "Installing uv..."
-    wget -qO- https://astral.sh/uv/install.sh | sh
+    wget -qO- https://astral.sh/uv/install.sh | sh # => in `$HOME/.local/bin`
 else
     echo "uv already installed. Skipping."
 fi
@@ -20,7 +20,7 @@ fi
 # install ffmpeg for audio validation (only if not installed) 
 if ! command -v ffmpeg &> /dev/null; then
     echo "Installing ffmpeg..."
-    sudo apt install -y ffmpeg
+    sudo apt install -y ffmpeg # => in `usr/bin/`
 else
     echo "ffmpeg already installed. Skipping."
 fi
@@ -28,24 +28,22 @@ fi
 # install git (only if not installed)
 if ! command -v git &> /dev/null; then
     echo "Installing Git..."
-    sudo apt install -y git
+    sudo apt install -y git # in `usr/bin/`
 else
     echo "Git already installed. Skipping."
 fi
 
 # we assume 
 # 1. nginx has already been installed
-# 2. private repo that contains config file (used for `confgen/gen.py`) has already been cloned.
+# 2. private repo that contains config file (used for config loading) has already been cloned.
 # Then **fill/change** the following ENV vars so we can then run the `project_init.sh`
 
 ENV=prod
-PROJECT_ROOT_LOCAL_DIR=/root/deploy/dajuan-english/docgate
-VENV_BIN_DIR="$PROJECT_ROOT_LOCAL_DIR/.venv/bin"
-DOCGATE_SRC_DIR="$PROJECT_ROOT_LOCAL_DIR/docgate"
-CONF_SYNC_GIT_REPO_LOCAL_DIR=/root/github/private-conf/web/docgate/confgen
+PROJECT_ROOT_LOCAL_DIR=/root/deploy/tts-server
+CONF_SYNC_GIT_REPO_LOCAL_DIR=/root/github/private-conf/web/tts-server/config
 NGINX_SYSTEM_CONF_DIR=/etc/nginx/conf.d
-SYSTEMD_SERVICE_NAME="docgate-fastapi"
-PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/pnpm" # for github workflow
+SYSTEMD_SERVICE_NAME="tts-server-fastapi"
+PATH="$HOME/.local/bin:$PATH" # for systemctl
 
 cat > $SCRIPT_DIR/.env << EOF
 
@@ -62,7 +60,7 @@ EOF
 cat > "$SCRIPT_DIR/$SYSTEMD_SERVICE_NAME.service" << EOF
 
 [Unit]
-Description=Docgate FastAPI App
+Description=TTS-Server FastAPI App
 After=network.target
 
 [Service]
@@ -71,15 +69,15 @@ NotifyAccess=main
 # NOTE: here I just set it to root. Change as your actual condition.
 User=root
 Group=root
-WorkingDirectory=$DOCGATE_SRC_DIR
-Environment="PATH=$VENV_BIN_DIR"
+WorkingDirectory=$PROJECT_ROOT_LOCAL_DIR
+Environment="PATH=$PATH"
 Environment="ENV=$ENV"
 # Note: I set worker=1.
-ExecStart=$VENV_BIN_DIR/gunicorn app:app \
+ExecStart=uv run gunicorn fs_tts_server.main:app \
   -k uvicorn.workers.UvicornWorker \
   -w 1 \
   --timeout 60 \
-  -b 127.0.0.1:3001
+  -b 127.0.0.1:6001
 
 ExecReload=/bin/kill -s HUP $MAINPID
 KillMode=mixed
