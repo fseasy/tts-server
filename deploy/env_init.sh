@@ -43,7 +43,7 @@ PROJECT_ROOT_LOCAL_DIR=/root/deploy/tts-server
 CONF_SYNC_GIT_REPO_LOCAL_DIR=/root/github/private-conf/web/tts-server/config
 NGINX_SYSTEM_CONF_DIR=/etc/nginx/conf.d
 SYSTEMD_SERVICE_NAME="tts-server-fastapi"
-PATH="$HOME/.local/bin:$PATH" # for systemctl
+PATH="$HOME/.local/bin:$PATH" # for systemctl (looks like useless as the ExecStart need the absolute path)
 
 cat > $SCRIPT_DIR/.env << EOF
 
@@ -64,8 +64,7 @@ Description=TTS-Server FastAPI App
 After=network.target
 
 [Service]
-Type=notify
-NotifyAccess=main
+Type=simple # change to simple as LLM suggesting
 # NOTE: here I just set it to root. Change as your actual condition.
 User=root
 Group=root
@@ -73,7 +72,7 @@ WorkingDirectory=$PROJECT_ROOT_LOCAL_DIR
 Environment="PATH=$PATH"
 Environment="ENV=$ENV"
 # Note: I set worker=1.
-ExecStart=uv run gunicorn fs_tts_server.main:app \
+ExecStart=$(which uv) run gunicorn fs_tts_server.main:app \
   -k uvicorn.workers.UvicornWorker \
   -w 1 \
   --timeout 60 \
