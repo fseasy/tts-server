@@ -64,7 +64,9 @@ Description=TTS-Server FastAPI App
 After=network.target
 
 [Service]
-Type=simple # change to simple as LLM suggesting
+# change to simple as LLM suggesting
+Type=simple
+
 # NOTE: here I just set it to root. Change as your actual condition.
 User=root
 Group=root
