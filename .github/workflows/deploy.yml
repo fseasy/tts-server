@@ -21,4 +21,5 @@ jobs:
             cd ${{ secrets.VPS_DEPLOY_RUN_DIR }}
             # update the repo first
             git fetch origin --prune && git checkout release && git reset --hard origin/release
+            ./env_init.sh
             ./project_init_and_update.sh
