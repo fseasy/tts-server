@@ -43,7 +43,9 @@ PROJECT_ROOT_LOCAL_DIR=/root/deploy/tts-server
 CONF_SYNC_GIT_REPO_LOCAL_DIR=/root/github/private-conf/web/tts-server/config
 NGINX_SYSTEM_CONF_DIR=/etc/nginx/conf.d
 SYSTEMD_SERVICE_NAME="tts-server-fastapi"
-PATH="$HOME/.local/bin:$PATH" # for systemctl (looks like useless as the ExecStart need the absolute path)
+PATH="$HOME/.local/bin" # for systemctl (looks like useless as the ExecStart need the absolute path)
+GUNICORN_BIN_PATH="${PROJECT_ROOT_LOCAL_DIR}/.venv/bin/gunicorn"
+SYSLOG_ADDRESS="127.0.0.1:11514"
 
 cat > $SCRIPT_DIR/.env << EOF
 
@@ -64,8 +66,9 @@ Description=TTS-Server FastAPI App
 After=network.target
 
 [Service]
-# change to simple as LLM suggesting
-Type=simple
+# NOTE: use notify instead of simple! Gunicorn support it, don't listen to LLM
+Type=notify
+NotifyAccess=main
 
 # NOTE: here I just set it to root. Change as your actual condition.
 User=root
@@ -73,12 +76,18 @@ Group=root
 WorkingDirectory=$PROJECT_ROOT_LOCAL_DIR
 Environment="PATH=$PATH"
 Environment="ENV=$ENV"
+# required by gunicorn & fastapi service logger
+Environment="SYSLOG_ADDRESS=$SYSLOG_ADDRESS"
 # Note: I set worker=1.
-ExecStart=$(which uv) run gunicorn fs_tts_server.main:app \
+# It's better to directly use gunicorn instead of use `uv run gunicorn` 
+# as the main process need to interact with the systemd
+ExecStart=${GUNICORN_BIN_PATH} fs_tts_server.main:app \
   -k uvicorn.workers.UvicornWorker \
   -w 1 \
   --timeout 60 \
-  -b 127.0.0.1:6001
+  -b 127.0.0.1:6001 \
+  --logger-class fs_pyutils.gunicorn_logger.GunicornSyslogLogger \
+  --log-level info \
 
 ExecReload=/bin/kill -s HUP $MAINPID
 KillMode=mixed

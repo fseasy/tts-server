@@ -4,6 +4,10 @@
     "fname",
     "fpath",
     "gunicorn",
-    "pyutils"
+    "MAINPID",
+    "pyutils",
+    "uvicorn",
+    "Uvicorn",
+    "venv"
   ]
 }
