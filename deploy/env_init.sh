@@ -84,15 +84,15 @@ Environment="SYSLOG_ADDRESS=$SYSLOG_ADDRESS"
 # Note: I set worker=1.
 # It's better to directly use gunicorn instead of use 'uv run gunicorn'
 # as the main process need to interact with the systemd
-ExecStart=${GUNICORN_BIN_PATH} fs_tts_server.main:app \
-  -k uvicorn.workers.UvicornWorker \
-  -w 1 \
-  --timeout 60 \
-  -b 127.0.0.1:6001 \
-  --logger-class fs_pyutils.gunicorn_logger.GunicornSyslogLogger \
-  --log-level info \
+ExecStart=${GUNICORN_BIN_PATH} fs_tts_server.main:app \\
+  -k uvicorn.workers.UvicornWorker \\
+  -w 1 \\
+  --timeout 60 \\
+  -b 127.0.0.1:6001 \\
+  --logger-class fs_pyutils.gunicorn_logger.GunicornSyslogLogger \\
+  --log-level info
 
-ExecReload=/bin/kill -s HUP $MAINPID
+ExecReload=/bin/kill -s HUP \$MAINPID
 KillMode=mixed
 TimeoutStopSec=30
 
