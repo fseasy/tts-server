@@ -4,7 +4,8 @@
 # run this file in the current dir.
 # or use bash to run it.
 
-set -e
+set -Eeuo pipefail
+trap 'echo "❌ Error at line $LINENO: $BASH_COMMAND"; exit 1' ERR
 set -x
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -43,7 +44,9 @@ PROJECT_ROOT_LOCAL_DIR=/root/deploy/tts-server
 CONF_SYNC_GIT_REPO_LOCAL_DIR=/root/github/private-conf/web/tts-server/config
 NGINX_SYSTEM_CONF_DIR=/etc/nginx/conf.d
 SYSTEMD_SERVICE_NAME="tts-server-fastapi"
-PATH="$HOME/.local/bin" # for systemctl (looks like useless as the ExecStart need the absolute path)
+# for systemctl (looks like useless as the ExecStart need the absolute path) and following commands (cat)
+# Add $PATH
+PATH="$HOME/.local/bin:$PATH"
 GUNICORN_BIN_PATH="${PROJECT_ROOT_LOCAL_DIR}/.venv/bin/gunicorn"
 SYSLOG_ADDRESS="127.0.0.1:11514"
 
