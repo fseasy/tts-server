@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fs_tts_server.config import LOGGER as logger
 from fs_tts_server.config.data_types import TtsModel
 from fs_tts_server.header_auth import verify_api_key
 from fs_tts_server.models import CachedAudioFile, CachedTts
@@ -39,10 +40,15 @@ async def gen_cached_tts(
   id = gen_cached_tts_id(text=req.text, project=req.project, id_version=req.id_version)
   data = await async_get_cached_tts(session=db_session, id=id)
   if not data:
+    logger.warning(f"cached-tts/gen id {id} not exists in db", extra={"text": req.text, "data_project": req.project})
     raise HTTPException(status_code=404, detail=f"id {id} not exist in db")
   relpath = data.audio_path
   audio_full_path = CachedAudioFile.get_fullpath(relpath)
   if not audio_full_path.exists():
+    logger.warning(
+      f"cached-tts/gen id {id} exists while audio {audio_full_path} not exists",
+      extra={"text": req.text, "data_project": req.project, "audio_path": str(audio_full_path)},
+    )
     raise HTTPException(status_code=404, detail=f"id {id} exists in db while audio {audio_full_path} not exist")
   return FileResponse(audio_full_path, media_type="audio/mpeg")
 

@@ -48,7 +48,9 @@ SYSTEMD_SERVICE_NAME="tts-server-fastapi"
 # Add $PATH
 PATH="$HOME/.local/bin:$PATH"
 GUNICORN_BIN_PATH="${PROJECT_ROOT_LOCAL_DIR}/.venv/bin/gunicorn"
+# following 2 are required by GunicornSyslogLogger
 SYSLOG_ADDRESS="127.0.0.1:11514"
+HOSTNAME="tts_fastapi"
 
 cat > $SCRIPT_DIR/.env << EOF
 
@@ -81,6 +83,7 @@ Environment="PATH=$PATH"
 Environment="ENV=$ENV"
 # required by gunicorn & fastapi service logger
 Environment="SYSLOG_ADDRESS=$SYSLOG_ADDRESS"
+Environment="HOSTNAME=$HOSTNAME"
 # Note: I set worker=1.
 # It's better to directly use gunicorn instead of use 'uv run gunicorn'
 # as the main process need to interact with the systemd
