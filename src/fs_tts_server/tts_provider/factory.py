@@ -1,8 +1,9 @@
 from typing import Any
+
 from ..config import CONF, LOGGER as logger
 from ..config.data_types import TtsModel
 from ..exceptions import LogicError
-from .base import TtsProvider, TtsBaseOption
+from .base import TtsProvider
 
 
 class TtsProviderFactory:
@@ -16,10 +17,11 @@ class TtsProviderFactory:
         continue
       logger.info(f"TTS provider: init {model}")
 
-      provider: TtsProvider
+      provider: TtsProvider[Any]
 
       if model == TtsModel.EDGE:
-        from .impl.edge import EdgeTtsOption, EdgeTtsProvider
+        from ..config.data_types import EdgeTtsOption
+        from .impl.edge import EdgeTtsProvider
 
         assert isinstance(option, EdgeTtsOption)
         provider = EdgeTtsProvider(option)
@@ -28,5 +30,5 @@ class TtsProviderFactory:
       cls._instances[model] = provider
 
   @classmethod
-  def get_provider(cls, model: TtsModel) -> TtsProvider | None:
+  def get_provider(cls, model: TtsModel) -> TtsProvider[Any] | None:
     return cls._instances.get(model, None)

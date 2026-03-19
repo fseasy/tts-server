@@ -1,18 +1,15 @@
 import json
-import traceback
 from collections.abc import AsyncGenerator
-from datetime import datetime
-from typing import Annotated, Any, Literal
+from typing import Any
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile
-from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
-from pydantic import BaseModel, Field, StringConstraints
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
+from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fs_tts_server import config
-from fs_tts_server.exceptions import InvalidUserInputException, LogicError
+from fs_tts_server.config.data_types import TtsModel
 from fs_tts_server.header_auth import verify_api_key
-from fs_tts_server.models import CachedAudioFile, CachedTts, TtsModel
+from fs_tts_server.models import CachedAudioFile, CachedTts
 from fs_tts_server.repositories import (
   TtsIdGenFnVersionT,
   async_create_or_update_cached_tts,
@@ -85,7 +82,7 @@ class CachedTtsListReq(BaseModel):
 async def list_cached_tts(
   req: CachedTtsListReq,
   db_session: AsyncSession = Depends(get_db_async_session),
-):
+) -> StreamingResponse:
   """A streaming response.
   - read example in client:
 

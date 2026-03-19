@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, Any, Literal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .config.data_types import TtsModel
 from .models import (
   AsyncSessionLocal,
   CachedAudioFile,
   CachedTts,
-  TtsModel,
   create_all_tables,
   dispose_engine,
 )
@@ -91,11 +91,11 @@ async def async_create_or_update_cached_tts(
     await session.execute(stmt)
 
   elif dialect == "postgresql":
-    from sqlalchemy.dialects.postgresql import insert
+    from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 
-    stmt = insert(CachedTts).values(record_data)
-    stmt = stmt.on_conflict_do_update(index_elements=["id"], set_=record_data)
-    await session.execute(stmt)
+    pstmt = postgresql_insert(CachedTts).values(record_data)
+    pstmt = pstmt.on_conflict_do_update(index_elements=["id"], set_=record_data)
+    await session.execute(pstmt)
 
   else:
     # Fallback 到通用 merge (牺牲原子性换取兼容性)

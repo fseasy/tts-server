@@ -102,7 +102,7 @@ async_engine = create_async_engine(
 
 
 @event.listens_for(async_engine.sync_engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
+def set_sqlite_pragma(dbapi_connection, connection_record) -> None:  # type: ignore
   """For Sqlite"""
   # 2. 依赖这里的 isolation_level = None 来禁用底层的隐式事务
   dbapi_connection.isolation_level = None
@@ -117,7 +117,7 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 
 
 @event.listens_for(async_engine.sync_engine, "begin")
-def do_begin(conn):
+def do_begin(conn) -> None:  # type: ignore
   # 3. 交由 SQLAlchemy 在需要写操作时接管事务
   conn.exec_driver_sql("BEGIN")
 
