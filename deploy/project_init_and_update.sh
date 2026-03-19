@@ -28,19 +28,22 @@ cd $CONF_SYNC_GIT_REPO_LOCAL_DIR
 git pull
 mkdir -p $PROD_CONF_PROJECT_INSIDE_DIR
 ln -sn "$CONF_SYNC_GIT_REPO_LOCAL_DIR/${ENV}.py" "$PROD_CONF_PROJECT_INSIDE_DIR/${ENV}.py" || true # skip set -x
-# go to workdir
+# go to workdir ROOT
 cd $PROJECT_ROOT_LOCAL_DIR
 echo "now switch to release branch"
 # 1. switch to release branch
 git fetch origin --prune
 git checkout release
 git reset --hard origin/release
-# 2. link nginx conf
+# 2. prepare uv env
+## it will create env, install dependency (without dev group). it'll also install self as editable package
+uv sync --frozen --no-dev  # --frozen 保证不修改 lock 文件，--no-dev 只装生产依赖
+
+# 3. link nginx conf
 echo "Link nginx conf"
 ln -sn "$CONF_SYNC_GIT_REPO_LOCAL_DIR/nginx.${ENV}.conf" "$NGINX_SYSTEM_CONF_DIR/tts-server.conf" || true
 
-# 3. install gunicorn services for fastapi
-
+# 4. install gunicorn services for fastapi
 service_fname="$SYSTEMD_SERVICE_NAME.service"
 service_target_fpath="/etc/systemd/system/$service_fname"
 service_source_fpath="$SCRIPT_DIR/$service_fname"

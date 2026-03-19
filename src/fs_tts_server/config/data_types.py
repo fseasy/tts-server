@@ -2,7 +2,7 @@ import logging
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Env(StrEnum):
@@ -30,6 +30,20 @@ class EdgeTtsOption(TtsBaseOption):
   voice: EdgeVoiceT = "en-US-EmmaMultilingualNeural"  # this one sounds more friendly
 
 
+def _default_syslog_addr() -> None | tuple[str, int]:
+  import os
+
+  # in format `ip:port`, like: "127.0.0.1:5140"
+  syslog_addr_str = os.getenv("SYSLOG_ADDRESS", None)
+  if not syslog_addr_str:
+    return None
+  try:
+    ip, port = syslog_addr_str.split(":")
+    return (ip, int(port))
+  except Exception:
+    return None
+
+
 class AppConf(BaseModel):
   env: Env
   app_name: str = "tts-server"
@@ -38,6 +52,6 @@ class AppConf(BaseModel):
   cors_allow_origin_regex: str
   """For CORS, an example: https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)? """
   log_level: int = logging.INFO
-  syslog_addr: tuple[str, int] = ("127.0.0.1", 11514)
+  syslog_addr: tuple[str, int] | None = Field(default_factory=_default_syslog_addr)
   auth_apikey: str
   enabled_tts_provider2option: dict[TtsModel, TtsBaseOption]
