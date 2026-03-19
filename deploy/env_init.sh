@@ -82,7 +82,7 @@ Environment="ENV=$ENV"
 # required by gunicorn & fastapi service logger
 Environment="SYSLOG_ADDRESS=$SYSLOG_ADDRESS"
 # Note: I set worker=1.
-# It's better to directly use gunicorn instead of use `uv run gunicorn` 
+# It's better to directly use gunicorn instead of use 'uv run gunicorn'
 # as the main process need to interact with the systemd
 ExecStart=${GUNICORN_BIN_PATH} fs_tts_server.main:app \
   -k uvicorn.workers.UvicornWorker \
