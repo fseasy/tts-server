@@ -5,9 +5,9 @@ from pathlib import Path
 import httpx
 from pydantic import BaseModel
 
+from fs_tts_server.config import LOGGER as logger
 from fs_tts_server.config.data_types import TtsModel
 from fs_tts_server.repositories import TtsIdGenFnVersionT
-from fs_tts_server.config import LOGGER as logger
 
 
 class CachedTtsListData(BaseModel):

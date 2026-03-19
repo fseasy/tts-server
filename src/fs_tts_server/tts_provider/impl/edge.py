@@ -1,9 +1,8 @@
 from collections.abc import AsyncGenerator
-import asyncio
-
-from ..base import TtsProvider
 
 from fs_tts_server.config.data_types import EdgeTtsOption
+
+from ..base import TtsProvider
 
 
 class EdgeTtsProvider(TtsProvider[EdgeTtsOption]):
