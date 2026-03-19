@@ -10,6 +10,10 @@ set -x
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# for ssh-login execution in github workflows (non-login shell)
+# Add $PATH (Very important, or the following tools will be install once again due to it's not in non-login shell path)
+export PATH="$HOME/.local/bin:$PATH"
+
 # install uv for python (only if not installed)
 if ! command -v uv &> /dev/null; then
     echo "Installing uv..."
@@ -44,9 +48,7 @@ PROJECT_ROOT_LOCAL_DIR=/root/deploy/tts-server
 CONF_SYNC_GIT_REPO_LOCAL_DIR=/root/github/private-conf/web/tts-server/config
 NGINX_SYSTEM_CONF_DIR=/etc/nginx/conf.d
 SYSTEMD_SERVICE_NAME="tts-server-fastapi"
-# for systemctl (looks like useless as the ExecStart need the absolute path) and following commands (cat)
-# Add $PATH
-PATH="$HOME/.local/bin:$PATH"
+
 GUNICORN_BIN_PATH="${PROJECT_ROOT_LOCAL_DIR}/.venv/bin/gunicorn"
 # following 2 are required by GunicornSyslogLogger
 SYSLOG_ADDRESS="127.0.0.1:11514"
