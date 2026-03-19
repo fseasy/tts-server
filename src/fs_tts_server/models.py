@@ -90,6 +90,7 @@ class CachedAudioFile:
 
 def _get_sqlite_db_async_path() -> str:
   db_dir = get_db_root_dir()
+  db_dir.mkdir(parents=True, exist_ok=True)  # must create dir, or it will hang without any warning...
   return f"sqlite+aiosqlite:///{db_dir / 'sqlite.db'}"
 
 

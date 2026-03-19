@@ -1,4 +1,21 @@
+## How to start dev
+
+1. push to main
+2. merge main to release, then it will trigger the deployment
+3. pay attention to the self dependency of `fs_pyutils`: use  `uv sync --upgrade-package fs_pyutils` to sync if we have changed something.
+
+-----
+
 ## 26.03.19
+
+### .gitignore `*` 把自己也给忽略了
+
+```
+*
+!.gitignore
+```
+
+这样比较好！
 
 ### systemd conf 不支持行尾注释！
 
@@ -6,7 +23,12 @@
 Type=simple # change to simple as LLM suggesting 这个怎么报错了
 ```
 
-这种要报错！
+这种要报错！ => 事实证明，还是应该用 notify 模式！可以用，而且感觉更稳一点。
+
+### BASH string 里用`\` 去反转义变量求值
+
+之前一直没注意，原来 env-init.sh 里面写 systemd 的 `/bin/kill -s HUP $MAINPID` 里面的  $MAINPID 直接被替换为变量了—空变量！
+幸好后面加了 `set -Eeuo pipefail` 才看到这个问题 …
 
 ## 26.03.17
 
