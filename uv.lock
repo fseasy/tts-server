@@ -363,8 +363,8 @@ wheels = [
 
 [[package]]
 name = "fs-pyutils"
-version = "1.0.0"
-source = { git = "https://github.com/fseasy/fs-pyutils.git#e7b3a485e3702761dfe98da50b151ed6a145303b" }
+version = "1.1.0"
+source = { git = "https://github.com/fseasy/fs-pyutils.git#c8749691aa58e39d725a1e88e6bb807e46e2b932" }
 
 [[package]]
 name = "fs-tts-server"
