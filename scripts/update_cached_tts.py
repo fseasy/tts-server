@@ -195,11 +195,11 @@ def _add_tts(
   TtsProviderFactory.init(tts_gen_conf.enabled_tts_provider2option)  # init the TTS clients
   success_datas: list[TtsKeyData] = []
   fail_datas: list[TtsKeyData] = []
-  BZ = 10
+  BZ = 8
   for batch_start_idx in range(0, len(newly_candidates), BZ):
     batch_datas = newly_candidates[batch_start_idx : batch_start_idx + BZ]
-    if (batch_start_idx + 1) % 3 == 0:
-      logger.info(f"AddTts: Processed {batch_start_idx * BZ} datas")
+    if (batch_start_idx + 1) % 40 == 0:
+      logger.info(f"AddTts: Processed {batch_start_idx} datas")
     try:
       _batch_gen_and_add(batch_datas)
     except Exception as e:
