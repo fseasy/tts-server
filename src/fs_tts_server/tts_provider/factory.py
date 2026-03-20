@@ -25,6 +25,13 @@ class TtsProviderFactory:
 
         assert isinstance(option, EdgeTtsOption)
         provider = EdgeTtsProvider(option)
+      elif model == TtsModel.QWEN3_TTS:
+        from ..config.data_types import Qwen3TtsOption
+        from .impl.qwen3_tts import Qwen3TtsProvider
+
+        assert isinstance(option, Qwen3TtsOption)
+        provider = Qwen3TtsProvider(option)
+
       else:
         raise LogicError(f"Unknown tts model: {model}")
       cls._instances[model] = provider

@@ -22,7 +22,7 @@ else:
 
 CONF = _app_conf
 
-TTS_MODEL2QUALITY_VALUE = {TtsModel.EDGE: 0}
+TTS_MODEL2QUALITY_VALUE = {TtsModel.EDGE: 0, TtsModel.QWEN3_TTS: 5}
 
 LOGGER = build_logger(
   CONF.app_name,

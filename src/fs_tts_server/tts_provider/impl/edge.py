@@ -19,3 +19,9 @@ class EdgeTtsProvider(TtsProvider[EdgeTtsOption]):
     async for chunk in communicate.stream():
       if chunk["type"] == "audio" and "data" in chunk:
         yield chunk["data"]
+
+  def sync_synthesize(self, text: str, option: EdgeTtsOption | None = None) -> bytes:
+    return super().sync_synthesize(text, option)
+
+  def sync_batch_synthesize(self, texts: list[str], option: EdgeTtsOption | None = None) -> list[bytes]:
+    return super().sync_batch_synthesize(texts, option)
