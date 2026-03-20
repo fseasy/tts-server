@@ -23,6 +23,8 @@ async def async_list(base_url: str, api_key: str, *, project: str) -> list[Cache
   headers = {"X-API-KEY": api_key}
   data = {"project": project}
 
+  print("URL", url, "header", headers)
+
   server_data: list[CachedTtsListData] = []
   async with httpx.AsyncClient() as client:
     async with client.stream("POST", url, json=data, headers=headers) as response:
@@ -37,7 +39,7 @@ async def async_list(base_url: str, api_key: str, *, project: str) -> list[Cache
           )
         except Exception as e:
           logger.info(f"`/cached-tts/list` return invalid jsonl line: [{line}], err={e}")
-          continue
+          raise
         server_data.append(d)
   return server_data
 

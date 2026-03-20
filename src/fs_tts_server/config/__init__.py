@@ -2,7 +2,10 @@ import os
 
 from fs_pyutils.log_builder import build_logger
 
-from .data_types import Env, TtsModel
+from .constant import TTS_MODEL2QUALITY_VALUE
+from .data_types import Env
+
+__all__ = ["TTS_MODEL2QUALITY_VALUE"]
 
 _env_str = os.getenv("env") or os.getenv("ENV")
 
@@ -21,8 +24,6 @@ else:
   from .dev import app_conf as _app_conf
 
 CONF = _app_conf
-
-TTS_MODEL2QUALITY_VALUE = {TtsModel.EDGE: 0, TtsModel.QWEN3_TTS: 5}
 
 LOGGER = build_logger(
   CONF.app_name,

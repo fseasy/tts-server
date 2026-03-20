@@ -1,7 +1,7 @@
 import io
+import json
 import zipfile
 from collections.abc import AsyncGenerator
-import json
 
 import httpx
 from pydantic import BaseModel
