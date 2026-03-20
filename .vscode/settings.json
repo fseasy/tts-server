@@ -6,6 +6,7 @@
     "gunicorn",
     "MAINPID",
     "pyutils",
+    "qwen",
     "uvicorn",
     "Uvicorn",
     "venv"
