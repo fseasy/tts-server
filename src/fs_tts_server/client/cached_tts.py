@@ -28,6 +28,15 @@ async def async_list(base_url: str, api_key: str, *, project: str) -> list[Cache
   server_data: list[CachedTtsListData] = []
   async with httpx.AsyncClient() as client:
     async with client.stream("POST", url, json=data, headers=headers) as response:
+      try:
+        response.raise_for_status()
+      except httpx.HTTPStatusError as e:
+        try:
+          content = (await response.aread()).decode()
+        except Exception as ex:
+          content = f"none due to exception: {ex}"
+        logger.critical(f"Request `/cache-tts/list` failed: Status code: {e.response.status_code} content: {content}")
+        raise
       async for line in response.aiter_lines():
         if not line:
           continue
