@@ -203,7 +203,7 @@ def _add_tts(
     try:
       _batch_gen_and_add(batch_datas)
     except Exception as e:
-      logger.warning(f"AddTts: failed to add tts for data[{batch_datas}], err={e}")
+      logger.exception(f"AddTts: failed to add tts for data[{batch_datas}], err={e}")
       fail_datas.extend(batch_datas)
       continue
     success_datas.extend(batch_datas)
