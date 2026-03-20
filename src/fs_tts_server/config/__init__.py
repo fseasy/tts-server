@@ -21,7 +21,7 @@ except ValueError as e:
 if env == Env.DEV:
   from .dev import app_conf as _app_conf
 else:
-  from .dev import app_conf as _app_conf
+  from .prod import app_conf as _app_conf
 
 CONF = _app_conf
 
