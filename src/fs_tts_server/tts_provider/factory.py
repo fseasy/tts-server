@@ -1,7 +1,7 @@
 from typing import Any
 
 from ..config import CONF, LOGGER as logger
-from ..config.data_types import TtsModel
+from ..config.data_types import TtsBaseOption, TtsModel
 from ..exceptions import LogicError
 from .base import TtsProvider
 
@@ -10,9 +10,11 @@ class TtsProviderFactory:
   _instances: dict[TtsModel, TtsProvider[Any]] = {}
 
   @classmethod
-  def init(cls) -> None:
+  def init(cls, init_provider2option: dict[TtsModel, TtsBaseOption] | None = None) -> None:
+    if not init_provider2option:
+      init_provider2option = CONF.enabled_tts_provider2option
 
-    for model, option in CONF.enabled_tts_provider2option.items():
+    for model, option in init_provider2option.items():
       if model in cls._instances:
         continue
       logger.info(f"TTS provider: init {model}")

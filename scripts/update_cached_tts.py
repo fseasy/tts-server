@@ -27,18 +27,23 @@ Logic:
 import argparse
 import asyncio
 import json
+import os
+
+# HACK for the config module loading. Todo: avoid put conf get in `__init__.py`
+os.environ["env"] = "dev"
 
 from fs_pyutils.audio import audio_to_mp3_bytes
 from pydantic import BaseModel, ConfigDict
 
 from fs_tts_server.client import cached_tts as cached_tts_client
-from fs_tts_server.config import CONF, LOGGER as logger, TTS_MODEL2QUALITY_VALUE
-from fs_tts_server.config.data_types import TtsModel
+from fs_tts_server.config import LOGGER as logger, TTS_MODEL2QUALITY_VALUE
+from fs_tts_server.config.data_types import AppConf, Env, TtsModel
+from fs_tts_server.config.env_conf import get_env_conf
 from fs_tts_server.repositories import TtsIdGenFnVersionT, clean_tts_text
 from fs_tts_server.tts_provider.factory import TtsProviderFactory
 
 
-def main():
+def main() -> None:
   parser = argparse.ArgumentParser(description="Update cached tts")
   parser.add_argument(
     "--text_data_file",
@@ -57,13 +62,22 @@ def main():
     type=TtsModel,
     help="tts model",
   )
+  parser.add_argument(
+    "--tts_gen_env", "-te", help="use which env config to generate the TTS", choices=Env, required=True, type=Env
+  )
+  parser.add_argument(
+    "--tts_add_env", "-ae", help="The TTS will be added to which env", choices=Env, required=True, type=Env
+  )
   parser.add_argument("--disable_del", "-dd", help="if set, disable deleting the data that only exists in server")
   args = parser.parse_args()
+  tts_gen_conf = get_env_conf(args.tts_gen_env)
+  tts_add_conf = get_env_conf(args.tts_add_env)
+
   latest_datas, project = _load_input_key_data(args.text_data_file, args.tts_model)
-  server_datas = _load_server_key_data(project)
-  _add_tts(latest_datas, server_datas)
+  server_datas = _load_server_key_data(project, tts_add_conf)
+  _add_tts(latest_datas=latest_datas, server_datas=server_datas, tts_add_conf=tts_add_conf, tts_gen_conf=tts_gen_conf)
   if not args.disable_del:
-    _del_tts(latest_datas, server_datas)
+    _del_tts(latest_datas=latest_datas, server_datas=server_datas, conf=tts_add_conf)
   else:
     logger.info("Disable del, skip del step")
 
@@ -89,23 +103,23 @@ def _load_input_key_data(fpath: str, model: TtsModel) -> tuple[list[TtsKeyData],
   return (datas, project)
 
 
-def _load_server_key_data(project: str) -> list[TtsKeyData]:
+def _load_server_key_data(project: str, conf: AppConf) -> list[TtsKeyData]:
   """Here we'll filter out the audio-invalid data"""
   list_datas = asyncio.run(
-    cached_tts_client.async_list(base_url=CONF.app_domain, api_key=CONF.auth_apikey, project=project)
+    cached_tts_client.async_list(base_url=conf.app_domain, api_key=conf.auth_apikey, project=project)
   )
   server_data: list[TtsKeyData] = []
   for d in list_datas:
     if not d.is_valid_audio:
       logger.info(f"text=[{d.text}] got invalid audio")
       continue
-    d = TtsKeyData(text=d.text, project=project, model=d.tts_model)
-    server_data.append(d)
+    tkd = TtsKeyData(text=d.text, project=project, model=d.tts_model)
+    server_data.append(tkd)
   return server_data
 
 
 def _add_tts(
-  latest_datas: list[TtsKeyData], server_datas: list[TtsKeyData]
+  *, latest_datas: list[TtsKeyData], server_datas: list[TtsKeyData], tts_add_conf: AppConf, tts_gen_conf: AppConf
 ) -> tuple[list[TtsKeyData], list[TtsKeyData]]:
   """Return:
   (success-list, fail-list)
@@ -161,11 +175,11 @@ def _add_tts(
 
     project = datas[0].project
     id_version = datas[0].id_version
-    for input_text, mp3_audio_bytes in zip(input_texts, batch_mp3_audio_bytes):
+    for input_text, mp3_audio_bytes in zip(input_texts, batch_mp3_audio_bytes, strict=True):
       asyncio.run(
         cached_tts_client.async_add(
-          base_url=CONF.app_domain,
-          api_key=CONF.auth_apikey,
+          base_url=tts_add_conf.app_domain,
+          api_key=tts_add_conf.auth_apikey,
           text=input_text,
           project=project,
           tts_model=tts_model,
@@ -178,7 +192,7 @@ def _add_tts(
   if not newly_candidates:
     return ([], [])
 
-  TtsProviderFactory.init()  # init the TTS clients
+  TtsProviderFactory.init(tts_gen_conf.enabled_tts_provider2option)  # init the TTS clients
   success_datas: list[TtsKeyData] = []
   fail_datas: list[TtsKeyData] = []
   BZ = 10
@@ -198,7 +212,7 @@ def _add_tts(
 
 
 def _del_tts(
-  latest_datas: list[TtsKeyData], server_datas: list[TtsKeyData]
+  *, latest_datas: list[TtsKeyData], server_datas: list[TtsKeyData], conf: AppConf
 ) -> tuple[list[TtsKeyData], list[TtsKeyData]]:
   """
   Del datas where data only exists in server side
@@ -222,8 +236,8 @@ def _del_tts(
   def _del1(data: TtsKeyData) -> None:
     asyncio.run(
       cached_tts_client.async_del(
-        base_url=CONF.app_domain,
-        api_key=CONF.auth_apikey,
+        base_url=conf.app_domain,
+        api_key=conf.auth_apikey,
         text=data.text,
         project=data.project,
         id_version=data.id_version,

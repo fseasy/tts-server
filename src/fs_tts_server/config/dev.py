@@ -11,7 +11,7 @@ _enabled_tts_provider2option: dict[TtsModel, TtsBaseOption] = {
 
 app_conf = AppConf(
   env=Env.DEV,
-  app_domain="http://127.0.0.1:6001",
+  app_domain="http://127.0.0.1:3342",
   log_level=logging.DEBUG,
   auth_apikey="dev.fs-tts-server",
   cors_allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?",
