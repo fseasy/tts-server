@@ -75,7 +75,7 @@ After=network.target
 [Service]
 # NOTE: use notify instead of simple! Gunicorn support it, don't listen to LLM
 Type=notify
-NotifyAccess=main
+NotifyAccess=all
 
 # NOTE: here I just set it to root. Change as your actual condition.
 User=root
@@ -89,20 +89,17 @@ Environment="HOSTNAME=$HOSTNAME"
 # Note: I set worker=1.
 # It's better to directly use gunicorn instead of use 'uv run gunicorn'
 # as the main process need to interact with the systemd
-ExecStart=${GUNICORN_BIN_PATH} fs_tts_server.main:app \\
-  -k uvicorn.workers.UvicornWorker \\
-  -w 1 \\
-  --timeout 60 \\
-  -b 127.0.0.1:6001 \\
-  --logger-class fs_pyutils.gunicorn_logger.GunicornSyslogLogger \\
-  --log-level info
+ExecStart=${GUNICORN_BIN_PATH} \\
+  -c file:${PROJECT_ROOT_LOCAL_DIR}/deploy/gunicorn.conf.py \\
+  fs_tts_server.main:app \\
 
 ExecReload=/bin/kill -s HUP \$MAINPID
 KillMode=mixed
-TimeoutStopSec=30
 
+WatchdogSec=45
+RestartSec=10
+TimeoutStopSec=30
 Restart=always
-RestartSec=30
 
 [Install]
 WantedBy=multi-user.target

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .config import LOGGER as logger
 from .config.data_types import TtsModel
 from .models import (
   AsyncSessionLocal,
@@ -33,8 +34,10 @@ get_db_async_session_cxt = asynccontextmanager(get_db_async_session)
 
 @asynccontextmanager
 async def lifespan_db(_: "FastAPI | None") -> AsyncGenerator[Any, None]:
+  logger.info("DB: create all table if necessary")
   await create_all_tables()  # create tables if eligible
   yield
+  logger.info("DB: dispose engine")
   await dispose_engine()  # dispose db after app close!
 
 

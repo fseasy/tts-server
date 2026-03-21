@@ -10,6 +10,7 @@ from sqlalchemy import DateTime, Dialect, String, Text, TypeDecorator, event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from .config import LOGGER as logger
 from .config.data_types import TtsModel
 from .exceptions import LogicError
 from .utils import safe_strftime
@@ -108,12 +109,17 @@ def set_sqlite_pragma(dbapi_connection, connection_record) -> None:  # type: ign
   # 2. 依赖这里的 isolation_level = None 来禁用底层的隐式事务
   dbapi_connection.isolation_level = None
   cursor = dbapi_connection.cursor()
-  cursor.execute("PRAGMA cache_size=-4000")
-  cursor.execute("PRAGMA temp_store=MEMORY")
-  cursor.execute("PRAGMA journal_mode=WAL")
-  cursor.execute("PRAGMA synchronous=NORMAL")
-  cursor.execute("PRAGMA busy_timeout=5000")
-  cursor.close()
+  try:
+    cursor.execute("PRAGMA cache_size=-4000")
+    cursor.execute("PRAGMA temp_store=MEMORY")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.execute("PRAGMA busy_timeout=5000")
+    # 包裹 journal_mode，遇到别的进程持锁时吞掉异常，不要阻断启动
+    cursor.execute("PRAGMA journal_mode=WAL")
+  except Exception as e:
+    logger.exception(f"sqlite set pragma failed due to exception: {e}")
+  finally:
+    cursor.close()
   del connection_record
 
 
@@ -139,7 +145,10 @@ async def drop_all_tables() -> None:
 
 async def dispose_engine() -> None:
   """Call this when you need to exit the APP! or the app will hang forever!"""
-  await async_engine.dispose()
+  try:
+    await asyncio.wait_for(async_engine.dispose(), timeout=5.0)
+  except Exception as e:
+    logger.exception(f"Warning: async_engine.dispose() error/timeout: {e}")
 
 
 class StrEnumDecorator(TypeDecorator):  # type: ignore

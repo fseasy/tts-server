@@ -12,6 +12,7 @@ from fs_tts_server.exceptions import ApiBaseException
 from fs_tts_server.repositories import lifespan_db
 from fs_tts_server.route_stat_middleware import RouteStatsMiddleware
 from fs_tts_server.routes_cached_tts import cached_tts_router
+from fs_tts_server.systemd_notifier import systemd_notifier_lifespan
 
 logger.info("Init TTS server")
 
@@ -28,7 +29,8 @@ logger.info("Build app")
 @asynccontextmanager
 async def lifespan_main(app: FastAPI) -> AsyncGenerator[Any, None]:
   async with lifespan_db(app):
-    yield
+    async with systemd_notifier_lifespan(app):
+      yield
 
 
 app = FastAPI(title=f"{CONF.app_name}-backend", lifespan=lifespan_main)
