@@ -100,22 +100,28 @@ def _load_input_key_data(fpath: str, model: TtsModel) -> tuple[list[TtsKeyData],
     text = text_data["text"]
     kd = TtsKeyData(text=text, project=project, model=model)
     datas.append(kd)
+  logger.info(f"Load input datas, size={len(datas)}, project={project}")
   return (datas, project)
 
 
 def _load_server_key_data(project: str, conf: AppConf) -> list[TtsKeyData]:
   """Here we'll filter out the audio-invalid data"""
+  logger.info("Start loading server data")
   list_datas = asyncio.run(
-    cached_tts_client.async_list(base_url=conf.app_domain, api_key=conf.auth_apikey, project=project)
+    cached_tts_client.async_list(
+      base_url=conf.app_domain,
+      api_key=conf.auth_apikey,
+      project=project,
+      skip_audio_content_validation=True,
+      log_process=True,
+    )
   )
-  server_data: list[TtsKeyData] = []
+  server_datas: list[TtsKeyData] = []
   for d in list_datas:
-    if not d.is_valid_audio:
-      logger.info(f"text=[{d.text}] got invalid audio")
-      continue
     tkd = TtsKeyData(text=d.text, project=project, model=d.tts_model)
-    server_data.append(tkd)
-  return server_data
+    server_datas.append(tkd)
+  logger.info(f"Load server datas, size={len(server_datas)}")
+  return server_datas
 
 
 def _add_tts(
@@ -156,14 +162,13 @@ def _add_tts(
         gen_candidates.append(data)
         quality_upgrade_cnt += 1
     logger.info(
-      f"Newly-Gen Candidates: Total=[{new_cnt + quality_upgrade_cnt}]"
+      f"New candidates to generate: Total=[{new_cnt + quality_upgrade_cnt}]"
       f", new-cnt=[{new_cnt}], tts-quality-upgrade-cnt=[{quality_upgrade_cnt}]"
     )
     return gen_candidates
 
-  def _batch_gen_and_add(datas: list[TtsKeyData]) -> None:
-    if not datas:
-      return
+  def _batch_gen(datas: list[TtsKeyData]) -> list[bytes]:
+    assert datas
     tts_model = datas[0].model
     tts_provider = TtsProviderFactory.get_provider(tts_model)
     if not tts_provider:
@@ -173,20 +178,32 @@ def _add_tts(
     batch_audio_bytes = tts_provider.sync_batch_synthesize(texts=input_texts)
     batch_mp3_audio_bytes = [audio_to_mp3_bytes(ab, sample_rate=24000, bitrate="96k") for ab in batch_audio_bytes]
 
-    project = datas[0].project
-    id_version = datas[0].id_version
-    for input_text, mp3_audio_bytes in zip(input_texts, batch_mp3_audio_bytes, strict=True):
-      asyncio.run(
-        cached_tts_client.async_add(
-          base_url=tts_add_conf.app_domain,
-          api_key=tts_add_conf.auth_apikey,
-          text=input_text,
-          project=project,
-          tts_model=tts_model,
-          mp3_audio_data=mp3_audio_bytes,
-          id_version=id_version,
-        )
-      )
+    return batch_mp3_audio_bytes
+
+  def _batch_add(batch_datas: list[TtsKeyData], batch_mp3_audio_bytes: list[bytes]) -> None:
+    assert len(batch_datas) == len(batch_mp3_audio_bytes)
+
+    async def _async_batch_add() -> None:
+      ADD_CONCURRENCY = 4
+      semaphore = asyncio.Semaphore(ADD_CONCURRENCY)
+
+      async def worker(idx: int) -> None:
+        async with semaphore:
+          await cached_tts_client.async_add(
+            base_url=tts_add_conf.app_domain,
+            api_key=tts_add_conf.auth_apikey,
+            text=batch_datas[idx].text,
+            project=batch_datas[idx].project,
+            tts_model=batch_datas[idx].model,
+            mp3_audio_data=batch_mp3_audio_bytes[idx],
+            id_version=batch_datas[idx].id_version,
+          )
+
+      async with asyncio.TaskGroup() as tg:
+        for idx in range(len(batch_datas)):
+          tg.create_task(worker(idx))
+
+    asyncio.run(_async_batch_add())
 
   newly_candidates = _calc_newly_gen_candidates()
   if not newly_candidates:
@@ -195,15 +212,18 @@ def _add_tts(
   TtsProviderFactory.init(tts_gen_conf.enabled_tts_provider2option)  # init the TTS clients
   success_datas: list[TtsKeyData] = []
   fail_datas: list[TtsKeyData] = []
-  BZ = 10
+  BZ = 8
   for batch_start_idx in range(0, len(newly_candidates), BZ):
     batch_datas = newly_candidates[batch_start_idx : batch_start_idx + BZ]
-    if (batch_start_idx + 1) % 3 == 0:
-      logger.info(f"AddTts: Processed {batch_start_idx * BZ} datas")
+    if batch_start_idx and batch_start_idx % (BZ * 10) == 0:
+      logger.info(f"AddTts: Processed {batch_start_idx} datas")
+    if not batch_datas:
+      continue
     try:
-      _batch_gen_and_add(batch_datas)
+      batch_mp3_bytes = _batch_gen(batch_datas)
+      _batch_add(batch_datas, batch_mp3_bytes)
     except Exception as e:
-      logger.warning(f"AddTts: failed to add tts for data[{batch_datas}], err={e}")
+      logger.exception(f"AddTts: failed to add tts for data[{batch_datas}], err={e}")
       fail_datas.extend(batch_datas)
       continue
     success_datas.extend(batch_datas)

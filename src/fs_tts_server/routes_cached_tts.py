@@ -82,6 +82,8 @@ async def del_cached_tts(
 
 class CachedTtsListReq(BaseModel):
   project: str
+  skip_audio_content_validation: bool = True
+  """If true, skip decoding the audio bytes (which is slow and computing intensive in poor vps)"""
 
 
 @cached_tts_router.post("/list", dependencies=[Depends(verify_api_key)])
@@ -106,10 +108,14 @@ async def list_cached_tts(
   """
 
   async def cached_tts2tgt_dict(record: CachedTts) -> dict[str, Any]:
+    if req.skip_audio_content_validation:
+      is_valid_audio: bool | None = None
+    else:
+      is_valid_audio = await CachedAudioFile.is_valid_audio(record.audio_path)
     return {
       "text": record.text,
       "tts_model": record.tts_model.value,
-      "is_valid_audio": await CachedAudioFile.is_valid_audio(record.audio_path),
+      "is_valid_audio": is_valid_audio,
     }
 
   async def generate_tts_stream() -> AsyncGenerator[str, None]:
