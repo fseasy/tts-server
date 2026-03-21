@@ -198,7 +198,7 @@ def _add_tts(
   BZ = 8
   for batch_start_idx in range(0, len(newly_candidates), BZ):
     batch_datas = newly_candidates[batch_start_idx : batch_start_idx + BZ]
-    if (batch_start_idx + 1) % 40 == 0:
+    if batch_start_idx and batch_start_idx % (BZ * 10) == 0:
       logger.info(f"AddTts: Processed {batch_start_idx} datas")
     try:
       _batch_gen_and_add(batch_datas)
