@@ -100,6 +100,7 @@ def _load_input_key_data(fpath: str, model: TtsModel) -> tuple[list[TtsKeyData],
     text = text_data["text"]
     kd = TtsKeyData(text=text, project=project, model=model)
     datas.append(kd)
+  logger.info(f"Load input datas, size={len(datas)}, project={project}")
   return (datas, project)
 
 
@@ -108,14 +109,15 @@ def _load_server_key_data(project: str, conf: AppConf) -> list[TtsKeyData]:
   list_datas = asyncio.run(
     cached_tts_client.async_list(base_url=conf.app_domain, api_key=conf.auth_apikey, project=project)
   )
-  server_data: list[TtsKeyData] = []
+  server_datas: list[TtsKeyData] = []
   for d in list_datas:
     if not d.is_valid_audio:
       logger.info(f"text=[{d.text}] got invalid audio")
       continue
     tkd = TtsKeyData(text=d.text, project=project, model=d.tts_model)
-    server_data.append(tkd)
-  return server_data
+    server_datas.append(tkd)
+  logger.info(f"Load server datas, size={len(server_datas)}")
+  return server_datas
 
 
 def _add_tts(
@@ -156,7 +158,7 @@ def _add_tts(
         gen_candidates.append(data)
         quality_upgrade_cnt += 1
     logger.info(
-      f"Newly-Gen Candidates: Total=[{new_cnt + quality_upgrade_cnt}]"
+      f"New candidates to generate: Total=[{new_cnt + quality_upgrade_cnt}]"
       f", new-cnt=[{new_cnt}], tts-quality-upgrade-cnt=[{quality_upgrade_cnt}]"
     )
     return gen_candidates
