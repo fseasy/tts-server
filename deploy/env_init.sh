@@ -9,6 +9,7 @@ trap 'echo "❌ Error at line $LINENO: $BASH_COMMAND"; exit 1' ERR
 set -x
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT_LOCAL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # for ssh-login execution in github workflows (non-login shell)
 # Add $PATH (Very important, or the following tools will be install once again due to it's not in non-login shell path)
@@ -44,7 +45,6 @@ fi
 # Then **fill/change** the following ENV vars so we can then run the `project_init.sh`
 
 ENV=prod
-PROJECT_ROOT_LOCAL_DIR=/root/deploy/tts-server
 CONF_SYNC_GIT_REPO_LOCAL_DIR=/root/github/private-conf/web/tts-server/config
 NGINX_SYSTEM_CONF_DIR=/etc/nginx/conf.d
 SYSTEMD_SERVICE_NAME="tts-server-fastapi"
