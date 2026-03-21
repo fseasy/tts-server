@@ -106,11 +106,14 @@ def _load_input_key_data(fpath: str, model: TtsModel) -> tuple[list[TtsKeyData],
 
 def _load_server_key_data(project: str, conf: AppConf) -> list[TtsKeyData]:
   """Here we'll filter out the audio-invalid data"""
+  logger.info("Start loading server data")
   list_datas = asyncio.run(
     cached_tts_client.async_list(base_url=conf.app_domain, api_key=conf.auth_apikey, project=project)
   )
   server_datas: list[TtsKeyData] = []
-  for d in list_datas:
+  for idx, d in enumerate(list_datas):
+    if (idx + 1) % 200 == 0:
+      logger.info(f"Loaded {idx} datas")
     if not d.is_valid_audio:
       logger.info(f"text=[{d.text}] got invalid audio")
       continue
