@@ -41,7 +41,7 @@ uv sync --frozen --no-dev  # --frozen 保证不修改 lock 文件，--no-dev 只
 
 # 3. link nginx conf
 echo "Link nginx conf"
-ln -sn "$CONF_SYNC_GIT_REPO_LOCAL_DIR/nginx.${ENV}.conf" "$NGINX_SYSTEM_CONF_DIR/tts-server.conf" || true
+sudo ln -sn "$CONF_SYNC_GIT_REPO_LOCAL_DIR/nginx.${ENV}.conf" "$NGINX_SYSTEM_CONF_DIR/tts-server.conf" || true
 
 # 4. install gunicorn services for fastapi
 service_fname="${SYSTEMD_SERVICE_NAME}.service"
@@ -82,7 +82,7 @@ sudo systemctl --no-pager --full status "$SYSTEMD_SERVICE_NAME"
 
 echo "Test Nginx config & Restart Nginx"
 # 4. restart nginx
-nginx -t
-systemctl restart nginx
+sudo nginx -t
+sudo systemctl restart nginx
 
 echo "All done"
