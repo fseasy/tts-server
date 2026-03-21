@@ -45,8 +45,16 @@ fi
 # Then **fill/change** the following ENV vars so we can then run the `project_init.sh`
 
 ENV=prod
-CONF_SYNC_GIT_REPO_LOCAL_DIR=/root/github/private-conf/web/tts-server/config
-NGINX_SYSTEM_CONF_DIR=/etc/nginx/conf.d
+# 2. 如果存在 .machine.env，则引入它
+# 注意：即使文件里定义了变量，也会被后续逻辑判断是否保留
+if [ -f "$SCRIPT_DIR/.machine.env" ]; then
+  source "$SCRIPT_DIR/.machine.env"
+fi
+
+# 3. 使用 : "${VAR:=DEFAULT}" 语法
+# 逻辑：如果变量未设置或为空，则赋值为等号后面的默认值
+: "${CONF_SYNC_GIT_REPO_LOCAL_DIR:="/root/github/private-conf/web/tts-server/config"}"
+: "${NGINX_SYSTEM_CONF_DIR:="/etc/nginx/conf.d"}"
 SYSTEMD_SERVICE_NAME="tts-server-fastapi"
 
 GUNICORN_BIN_PATH="${PROJECT_ROOT_LOCAL_DIR}/.venv/bin/gunicorn"
