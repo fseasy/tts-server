@@ -163,9 +163,8 @@ def _add_tts(
     )
     return gen_candidates
 
-  def _batch_gen_and_add(datas: list[TtsKeyData]) -> None:
-    if not datas:
-      return
+  def _batch_gen(datas: list[TtsKeyData]) -> list[bytes]:
+    assert datas
     tts_model = datas[0].model
     tts_provider = TtsProviderFactory.get_provider(tts_model)
     if not tts_provider:
@@ -175,20 +174,32 @@ def _add_tts(
     batch_audio_bytes = tts_provider.sync_batch_synthesize(texts=input_texts)
     batch_mp3_audio_bytes = [audio_to_mp3_bytes(ab, sample_rate=24000, bitrate="96k") for ab in batch_audio_bytes]
 
-    project = datas[0].project
-    id_version = datas[0].id_version
-    for input_text, mp3_audio_bytes in zip(input_texts, batch_mp3_audio_bytes, strict=True):
-      asyncio.run(
-        cached_tts_client.async_add(
-          base_url=tts_add_conf.app_domain,
-          api_key=tts_add_conf.auth_apikey,
-          text=input_text,
-          project=project,
-          tts_model=tts_model,
-          mp3_audio_data=mp3_audio_bytes,
-          id_version=id_version,
-        )
-      )
+    return batch_mp3_audio_bytes
+
+  def _batch_add(batch_datas: list[TtsKeyData], batch_mp3_audio_bytes: list[bytes]) -> None:
+    assert len(batch_datas) == len(batch_mp3_audio_bytes)
+
+    async def _async_batch_add() -> None:
+      ADD_CONCURRENCY = 4
+      semaphore = asyncio.Semaphore(ADD_CONCURRENCY)
+
+      async def worker(idx: int) -> None:
+        async with semaphore:
+          await cached_tts_client.async_add(
+            base_url=tts_add_conf.app_domain,
+            api_key=tts_add_conf.auth_apikey,
+            text=batch_datas[idx].text,
+            project=batch_datas[idx].project,
+            tts_model=batch_datas[idx].model,
+            mp3_audio_data=batch_mp3_audio_bytes[idx],
+            id_version=batch_datas[idx].id_version,
+          )
+
+      async with asyncio.TaskGroup() as tg:
+        for idx in range(len(batch_datas)):
+          tg.create_task(worker(idx))
+
+    asyncio.run(_async_batch_add())
 
   newly_candidates = _calc_newly_gen_candidates()
   if not newly_candidates:
@@ -202,8 +213,11 @@ def _add_tts(
     batch_datas = newly_candidates[batch_start_idx : batch_start_idx + BZ]
     if batch_start_idx and batch_start_idx % (BZ * 10) == 0:
       logger.info(f"AddTts: Processed {batch_start_idx} datas")
+    if not batch_datas:
+      continue
     try:
-      _batch_gen_and_add(batch_datas)
+      batch_mp3_bytes = _batch_gen(batch_datas)
+      _batch_add(batch_datas, batch_mp3_bytes)
     except Exception as e:
       logger.exception(f"AddTts: failed to add tts for data[{batch_datas}], err={e}")
       fail_datas.extend(batch_datas)
