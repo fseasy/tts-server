@@ -39,7 +39,9 @@ class CachedTtsListData(BaseModel):
   is_valid_audio: bool
 
 
-async def async_list(base_url: str, api_key: str, *, project: str) -> list[CachedTtsListData]:
+async def async_list(
+  base_url: str, api_key: str, *, project: str, log_process: bool = False
+) -> list[CachedTtsListData]:
   API = "/cached-tts/list"
   url = f"{base_url.rstrip('/')}{API}"
   headers = {"X-API-KEY": api_key}
@@ -57,7 +59,11 @@ async def async_list(base_url: str, api_key: str, *, project: str) -> list[Cache
         content = f"none due to exception: {ex}"
       logger.critical(f"Request `/cache-tts/list` failed: Status code: {e.response.status_code} content: {content}")
       raise
+    cnt = 0
     async for line in response.aiter_lines():
+      cnt += 1
+      if log_process and cnt % 100 == 0:
+        logger.info(f"list get {cnt} lines")
       if not line:
         continue
       try:
