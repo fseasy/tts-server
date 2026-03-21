@@ -108,13 +108,16 @@ def _load_server_key_data(project: str, conf: AppConf) -> list[TtsKeyData]:
   """Here we'll filter out the audio-invalid data"""
   logger.info("Start loading server data")
   list_datas = asyncio.run(
-    cached_tts_client.async_list(base_url=conf.app_domain, api_key=conf.auth_apikey, project=project, log_process=True)
+    cached_tts_client.async_list(
+      base_url=conf.app_domain,
+      api_key=conf.auth_apikey,
+      project=project,
+      skip_audio_content_validation=True,
+      log_process=True,
+    )
   )
   server_datas: list[TtsKeyData] = []
   for d in list_datas:
-    if not d.is_valid_audio:
-      logger.info(f"text=[{d.text}] got invalid audio")
-      continue
     tkd = TtsKeyData(text=d.text, project=project, model=d.tts_model)
     server_datas.append(tkd)
   logger.info(f"Load server datas, size={len(server_datas)}")

@@ -36,16 +36,16 @@ class CachedTtsListData(BaseModel):
   text: str
   project: str
   tts_model: TtsModel
-  is_valid_audio: bool
+  is_valid_audio: bool | None
 
 
 async def async_list(
-  base_url: str, api_key: str, *, project: str, log_process: bool = False
+  base_url: str, api_key: str, *, project: str, skip_audio_content_validation: bool = True, log_process: bool = False
 ) -> list[CachedTtsListData]:
   API = "/cached-tts/list"
   url = f"{base_url.rstrip('/')}{API}"
   headers = {"X-API-KEY": api_key}
-  data = {"project": project}
+  data = {"project": project, "skip_audio_content_validation": skip_audio_content_validation}
 
   server_data: list[CachedTtsListData] = []
   timeout = httpx.Timeout(connect=5, read=120, write=10, pool=5)
