@@ -36,7 +36,7 @@ async def lifespan_main(app: FastAPI) -> AsyncGenerator[Any, None]:
 
 app = FastAPI(title=f"{CONF.app_name}-backend", lifespan=lifespan_main)
 
-# CORS, or 405
+# CORS config, or it will get 405 in browser side (not affect the api request)
 app.add_middleware(
   CORSMiddleware,
   allow_origin_regex=CONF.cors_allow_origin_regex,
