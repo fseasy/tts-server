@@ -2,7 +2,7 @@ import json
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,26 +31,53 @@ class CachedTtsBaseReq(BaseModel):
   project: str
 
 
+# 2. 保留原有的 POST 接口（供未刷新的老前端使用）
 @cached_tts_router.post("/gen")
-async def gen_cached_tts(
+async def gen_cached_tts_post(
   req: CachedTtsBaseReq,
   db_session: AsyncSession = Depends(get_db_async_session),
 ) -> FileResponse:
-  """Return Audio stream if audio exists"""
-  id = gen_cached_tts_id(text=req.text, project=req.project, id_version=req.id_version)
+  return await _gen_cached_tts_logic(
+    text=req.text, project=req.project, id_version=req.id_version, db_session=db_session
+  )
+
+
+# 3. 新增 GET 接口（供新版前端使用）
+@cached_tts_router.get("/gen")
+async def gen_cached_tts_get(
+  text: str = Query(..., description="tts text"),
+  project: str = Query(..., description="project"),
+  id_version: TtsIdGenFnVersionT = Query("v1"),
+  db_session: AsyncSession = Depends(get_db_async_session),
+) -> FileResponse:
+  return await _gen_cached_tts_logic(text=text, project=project, id_version=id_version, db_session=db_session)
+
+
+async def _gen_cached_tts_logic(
+  *, text: str, project: str, id_version: TtsIdGenFnVersionT, db_session: AsyncSession
+) -> FileResponse:
+  id = gen_cached_tts_id(text=text, project=project, id_version=id_version)
   data = await async_get_cached_tts(session=db_session, id=id)
+
   if not data:
-    logger.warning(f"cached-tts/gen id {id} not exists in db", extra={"text": req.text, "data_project": req.project})
+    logger.warning(f"cached-tts/gen id {id} not exists in db", extra={"text": text, "data_project": project})
     raise HTTPException(status_code=404, detail=f"id {id} not exist in db")
+
   relpath = data.audio_path
   audio_full_path = CachedAudioFile.get_fullpath(relpath)
+
   if not audio_full_path.exists():
-    logger.warning(
-      f"cached-tts/gen id {id} exists while audio {audio_full_path} not exists",
-      extra={"text": req.text, "data_project": req.project, "audio_path": str(audio_full_path)},
-    )
-    raise HTTPException(status_code=404, detail=f"id {id} exists in db while audio {audio_full_path} not exist")
-  return FileResponse(audio_full_path, media_type="audio/mpeg")
+    logger.warning(f"cached-tts/gen id {id} exists while audio {audio_full_path} not exists")
+    raise HTTPException(status_code=404, detail=f"audio {audio_full_path} not exist")
+
+  return FileResponse(
+    audio_full_path,
+    media_type="audio/mpeg",
+    headers={
+      "Cache-Control": "public, max-age=1296000",  # cache 15 days
+      "Accept-Ranges": "bytes",  # 显式声明支持分段流式播放
+    },
+  )
 
 
 @cached_tts_router.post("/add", dependencies=[Depends(verify_api_key)])
