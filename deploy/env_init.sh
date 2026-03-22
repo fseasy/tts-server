@@ -16,30 +16,30 @@ PROJECT_ROOT_LOCAL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 export PATH="$HOME/.local/bin:$PATH"
 
 # install uv for python (only if not installed)
-if ! command -v uv &> /dev/null; then
-    echo "Installing uv..."
-    wget -qO- https://astral.sh/uv/install.sh | sh # => in `$HOME/.local/bin`
+if ! command -v uv &>/dev/null; then
+	echo "Installing uv..."
+	wget -qO- https://astral.sh/uv/install.sh | sh # => in `$HOME/.local/bin`
 else
-    echo "uv already installed. Skipping."
+	echo "uv already installed. Skipping."
 fi
 
-# install ffmpeg for audio validation (only if not installed) 
-if ! command -v ffmpeg &> /dev/null; then
-    echo "Installing ffmpeg..."
-    sudo apt install -y ffmpeg # => in `usr/bin/`
+# install ffmpeg for audio validation (only if not installed)
+if ! command -v ffmpeg &>/dev/null; then
+	echo "Installing ffmpeg..."
+	sudo apt install -y ffmpeg # => in `usr/bin/`
 else
-    echo "ffmpeg already installed. Skipping."
+	echo "ffmpeg already installed. Skipping."
 fi
 
 # install git (only if not installed)
-if ! command -v git &> /dev/null; then
-    echo "Installing Git..."
-    sudo apt install -y git # in `usr/bin/`
+if ! command -v git &>/dev/null; then
+	echo "Installing Git..."
+	sudo apt install -y git # in `usr/bin/`
 else
-    echo "Git already installed. Skipping."
+	echo "Git already installed. Skipping."
 fi
 
-# we assume 
+# we assume
 # 1. nginx has already been installed
 # 2. private repo that contains config file (used for config loading) has already been cloned.
 # Then **fill/change** the following ENV vars so we can then run the `project_init.sh`
@@ -50,7 +50,7 @@ GUNICORN_BIN_PATH="${PROJECT_ROOT_LOCAL_DIR}/.venv/bin/gunicorn"
 # 如果存在 .machine.env，则引入它
 # 注意：即使文件里定义了变量，也会被后续逻辑判断是否保留
 if [ -f "$SCRIPT_DIR/.machine.env" ]; then
-  source "$SCRIPT_DIR/.machine.env"
+	source "$SCRIPT_DIR/.machine.env"
 fi
 
 # 3. 使用 : "${VAR:=DEFAULT}" 语法: 如果变量未设置或为空，则赋值为等号后面的默认值
@@ -61,19 +61,19 @@ fi
 : "${HOSTNAME:="tts_fastapi"}"
 # following 2 are required by GunicornSyslogLogger
 
-cat > $SCRIPT_DIR/.env << EOF
+cat >$SCRIPT_DIR/.env <<EOF
 
-ENV=$ENV
-PROJECT_ROOT_LOCAL_DIR=$PROJECT_ROOT_LOCAL_DIR
-CONF_SYNC_GIT_REPO_LOCAL_DIR=$CONF_SYNC_GIT_REPO_LOCAL_DIR
-NGINX_SYSTEM_CONF_DIR=$NGINX_SYSTEM_CONF_DIR
-SYSTEMD_SERVICE_NAME=$SYSTEMD_SERVICE_NAME
-PATH=$PATH
+ENV="$ENV"
+PROJECT_ROOT_LOCAL_DIR="$PROJECT_ROOT_LOCAL_DIR"
+CONF_SYNC_GIT_REPO_LOCAL_DIR="$CONF_SYNC_GIT_REPO_LOCAL_DIR"
+NGINX_SYSTEM_CONF_DIR="$NGINX_SYSTEM_CONF_DIR"
+SYSTEMD_SERVICE_NAME="$SYSTEMD_SERVICE_NAME"
+PATH="$PATH"
 
 EOF
 
 # write the systemd service file.
-cat > "$SCRIPT_DIR/$SYSTEMD_SERVICE_NAME.service" << EOF
+cat >"$SCRIPT_DIR/$SYSTEMD_SERVICE_NAME.service" <<EOF
 
 [Unit]
 Description=TTS-Server FastAPI App
