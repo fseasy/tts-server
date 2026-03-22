@@ -71,7 +71,7 @@ cd $PROJECT_ROOT_LOCAL_DIR
 # sync repo if need
 if [[ "$MODE" == "serving" ]]; then
 	# 生产模式：强制同步
-	safe_git_update_to_branch "$PROJECT_ROOT_LOCAL_DIR" "release"
+	git_update_to_branch "$PROJECT_ROOT_LOCAL_DIR" "release"
 elif [[ "$MODE" == "deving" ]]; then
 	# 开发模式：跳过同步
 	echo "⚠️  Mode is [deving]: Skipping git sync to preserve local changes."

@@ -20,6 +20,7 @@ jobs:
           script: |
             cd ${{ secrets.VPS_DEPLOY_RUN_DIR }}
             # update the repo first
-            git fetch origin --prune && git checkout release && git reset --hard origin/release && \
+            source ./utils.sh
+            git_update_to_branch "$PWD" release && \
             ./env_init.sh && \
             ./project_init_and_update.sh --mode serving
