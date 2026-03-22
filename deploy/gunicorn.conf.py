@@ -14,7 +14,7 @@ logger_class = "fs_pyutils.gunicorn_logger.GunicornSyslogLogger"
 intercept_server_ready_signal()
 
 
-def on_starting(server):
+def on_starting(server) -> None:  # type: ignore
   """
   Gunicorn Master 启动前的钩子
   此时 Gunicorn 发现环境变量里没有 NOTIFY_SOCKET，它就会变回 'simple' 模式的行为
