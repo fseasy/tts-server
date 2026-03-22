@@ -68,8 +68,18 @@ echo "🚀 Starting in $MODE mode..."
 
 #! 1. update project root dir & setup env by uv
 cd $PROJECT_ROOT_LOCAL_DIR
-# - force checkout to latest branch
-git_update_to_branch $PROJECT_ROOT_LOCAL_DIR "release"
+# sync repo if need
+if [[ "$MODE" == "serving" ]]; then
+	# 生产模式：强制同步
+	safe_git_update_to_branch "$PROJECT_ROOT_LOCAL_DIR" "release"
+elif [[ "$MODE" == "deving" ]]; then
+	# 开发模式：跳过同步
+	echo "⚠️  Mode is [deving]: Skipping git sync to preserve local changes."
+else
+	# 兜底逻辑：防止 MODE 变量由于某种原因变成了奇怪的值
+	echo "❌ Error: Unknown mode '$MODE'"
+	exit 1
+fi
 # - prepare uv env
 ## it will create env, install dependency (without dev group). it'll also install self as editable package
 uv sync --frozen --no-dev # --frozen 保证不修改 lock 文件，--no-dev 只装生产依赖
