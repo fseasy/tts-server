@@ -1,12 +1,14 @@
 {
   "cSpell.words": [
     "apikey",
+    "deving",
     "fname",
     "fpath",
     "gunicorn",
     "MAINPID",
     "pyutils",
     "qwen",
+    "usec",
     "uvicorn",
     "Uvicorn",
     "venv"

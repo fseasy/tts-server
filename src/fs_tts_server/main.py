@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fs_pyutils.systemd_notifier import systemd_notifier_lifespan
 
 from fs_tts_server.config import CONF, LOGGER as logger
 from fs_tts_server.exceptions import ApiBaseException
@@ -27,13 +28,15 @@ logger.info("Build app")
 
 @asynccontextmanager
 async def lifespan_main(app: FastAPI) -> AsyncGenerator[Any, None]:
-  async with lifespan_db(app):
-    yield
+  async with lifespan_db(app) as async_engine:
+    async with systemd_notifier_lifespan(app, async_db_engine=async_engine, logger=logger):
+      logger.info("Server fully loaded.")
+      yield
 
 
 app = FastAPI(title=f"{CONF.app_name}-backend", lifespan=lifespan_main)
 
-# CORS, or 405
+# CORS config, or it will get 405 in browser side (not affect the api request)
 app.add_middleware(
   CORSMiddleware,
   allow_origin_regex=CONF.cors_allow_origin_regex,
