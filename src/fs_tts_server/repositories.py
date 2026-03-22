@@ -3,17 +3,11 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Literal
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from .config import LOGGER as logger
 from .config.data_types import TtsModel
-from .models import (
-  AsyncSessionLocal,
-  CachedAudioFile,
-  CachedTts,
-  create_all_tables,
-  dispose_engine,
-)
+from .models import AsyncSessionLocal, CachedAudioFile, CachedTts, async_engine, create_all_tables, dispose_engine
 
 if TYPE_CHECKING:
   from fastapi import FastAPI
@@ -33,10 +27,10 @@ get_db_async_session_cxt = asynccontextmanager(get_db_async_session)
 
 
 @asynccontextmanager
-async def lifespan_db(_: "FastAPI | None") -> AsyncGenerator[Any, None]:
+async def lifespan_db(_: "FastAPI | None") -> AsyncGenerator[AsyncEngine, None]:
   logger.info("DB: create all table if necessary")
   await create_all_tables()  # create tables if eligible
-  yield
+  yield async_engine
   logger.info("DB: dispose engine")
   await dispose_engine()  # dispose db after app close!
 

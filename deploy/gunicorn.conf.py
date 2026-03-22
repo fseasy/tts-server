@@ -1,6 +1,6 @@
 # see https://gunicorn.org/reference/settings/#config
 
-import os
+from fs_pyutils.systemd_notifier import intercept_server_ready_signal
 
 # --- Gunicorn 配置 ---
 bind = "127.0.0.1:6001"
@@ -10,15 +10,8 @@ timeout = 60
 loglevel = "info"
 logger_class = "fs_pyutils.gunicorn_logger.GunicornSyslogLogger"
 
-# --- 核心“科学”逻辑 ---
-
-# 1. 拦截 Systemd 的通知 Socket
-# Gunicorn 内部逻辑是：如果检测到环境变量 NOTIFY_SOCKET，就会在启动后发送 READY=1。
-# 我们在 Gunicorn 初始化前把它移走，存入自定义变量中。
-_real_notify_socket = os.environ.pop("NOTIFY_SOCKET", None)
-if _real_notify_socket:
-  # 存入一个 Gunicorn 不认识，但我们代码能找到的变量名
-  os.environ["CUSTOM_NOTIFY_SOCKET"] = _real_notify_socket
+# intercept ready signal
+intercept_server_ready_signal()
 
 
 def on_starting(server):
