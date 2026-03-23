@@ -75,11 +75,18 @@ def main() -> None:
 
   latest_datas, project = _load_input_key_data(args.text_data_file, args.tts_model)
   server_datas = _load_server_key_data(project, tts_add_conf)
-  _add_tts(latest_datas=latest_datas, server_datas=server_datas, tts_add_conf=tts_add_conf, tts_gen_conf=tts_gen_conf)
+  (_, failed_datas) = _add_tts(
+    latest_datas=latest_datas, server_datas=server_datas, tts_add_conf=tts_add_conf, tts_gen_conf=tts_gen_conf
+  )
   if not args.disable_del:
     _del_tts(latest_datas=latest_datas, server_datas=server_datas, conf=tts_add_conf)
   else:
     logger.info("Disable del, skip del step")
+  # Let's report the status based on the failed-cnt => Need to raise exception so the outer can know status easily
+  if len(failed_datas) > 0:
+    raise RuntimeError(
+      f"All flow running done, failed due to failed to generate all TTS texts, failed count={len(failed_datas)}"
+    )
 
 
 class TtsKeyData(BaseModel):
