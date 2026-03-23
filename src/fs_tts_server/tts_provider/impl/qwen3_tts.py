@@ -55,10 +55,17 @@ class Qwen3TtsProvider(TtsProvider[Qwen3TtsOption]):
     req_opt = option.request_option
     url = f"{req_opt.base_url}/tts"
     timeout = httpx.Timeout(connect=5, read=req_opt.timeout, write=5, pool=10)
-    async with self._async_client.stream("POST", url, json=request.model_dump(), timeout=timeout) as resp:
-      resp.raise_for_status()
-      async for chunk in resp.aiter_bytes(chunk_size=8192):
-        yield chunk
+    try:
+      async with self._async_client.stream("POST", url, json=request.model_dump(), timeout=timeout) as resp:
+        resp.raise_for_status()
+        async for chunk in resp.aiter_bytes(chunk_size=8192):
+          yield chunk
+    except httpx.HTTPStatusError as e:
+      raise RuntimeError(
+        f"request `{url}` get bad http code: code={e.response.status_code}, text={e.response.text}"
+      ) from e
+    except Exception as e:
+      raise RuntimeError(f"request `{url}` get exception: {e}") from e
 
   def sync_synthesize(self, text: str, option: Qwen3TtsOption | None = None) -> bytes:
     return super().sync_synthesize(text, option)
@@ -78,8 +85,16 @@ class Qwen3TtsProvider(TtsProvider[Qwen3TtsOption]):
     req_opt = option.request_option
     url = f"{req_opt.base_url}/batch-tts"
     timeout = httpx.Timeout(connect=5, read=req_opt.timeout, write=5, pool=10)
-    resp = self._client.post(url, json=request.model_dump(), timeout=timeout)
-    resp.raise_for_status()
+    try:
+      resp = self._client.post(url, json=request.model_dump(), timeout=timeout)
+      resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+      # let's include the full response.text to easily debug
+      raise RuntimeError(
+        f"request `{url}` get bad http code: code={e.response.status_code}, text={e.response.text}"
+      ) from e
+    except Exception as e:
+      raise RuntimeError(f"request `{url}` get exception: {e}") from e
 
     # resp is a zip file, contains the audio datas as well as a manifest.json
     audio_bytes: list[bytes] = []

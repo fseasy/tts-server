@@ -57,9 +57,9 @@ fi
 : "${ENV:="prod"}"
 : "${CONF_SYNC_GIT_REPO_LOCAL_DIR:="/root/github/private-conf/web/tts-server/config"}"
 : "${NGINX_SYSTEM_CONF_DIR:="/etc/nginx/conf.d"}"
+# following 2 are required by GunicornSyslogLogger
 : "${SYSLOG_ADDRESS:="127.0.0.1:11514"}"
 : "${HOSTNAME:="tts_fastapi"}"
-# following 2 are required by GunicornSyslogLogger
 
 cat >$SCRIPT_DIR/.env <<EOF
 
