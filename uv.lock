@@ -363,8 +363,12 @@ wheels = [
 
 [[package]]
 name = "fs-pyutils"
-version = "1.1.0"
-source = { git = "https://github.com/fseasy/fs-pyutils.git#6b609fa87dbc279ee27c281502c60e3d15edc796" }
+version = "2.0.0"
+source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/4e/cb/52e48ab21f6b3167aaae58512e238fbd19d7c84c993c69703b05d6bef29d/fs_pyutils-2.0.0.tar.gz", hash = "sha256:dcde1b28885aa7a19376ae09d8f4fda909aed28dd69216f0ea46f260218e0bce" }
+wheels = [
+    { url = "https://mirrors.aliyun.com/pypi/packages/6b/6f/45376827a15240c587c80c1a53cab0f455d63d0e7554a50330050c91e671/fs_pyutils-2.0.0-py3-none-any.whl", hash = "sha256:bab875ca19bfac5278318d8e67bb49a6e1c6f8d5963b2d349b82384aa82b01ba" },
+]
 
 [[package]]
 name = "fs-tts-server"
@@ -394,7 +398,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.22.1" },
     { name = "edge-tts", specifier = ">=7.2.7" },
     { name = "fastapi", extras = ["standard-no-fastapi-cloud-cli"], specifier = ">=0.135.1" },
-    { name = "fs-pyutils", git = "https://github.com/fseasy/fs-pyutils.git" },
+    { name = "fs-pyutils", specifier = ">=2.0.0" },
     { name = "gunicorn", specifier = ">=25.1.0" },
     { name = "h2", specifier = ">=4.3.0" },
     { name = "httpx", specifier = ">=0.28.1" },

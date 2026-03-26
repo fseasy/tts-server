@@ -1,6 +1,6 @@
 #!/bin/bash
 # * A common utils for deploy.
-# * version: 1.1.0
+# * version: 1.0.0
 set -Eeuo pipefail
 
 # * 将 src link 到 tgt 位置，可以给定多个待测试的 src，找到第一个存在的，用于 link.
@@ -157,11 +157,11 @@ deploy_gunicorn_systemd_service() {
 		# ---------- Update ----------
 		if cmp -s "$source_fpath" "$target_fpath"; then
 			# reload when no service file no change
-			echo "Status: Config unchanged → Ensuring service is active..."
+			echo "Status: Config unchanged → Reload service or restarting..."
 			# try to reload when service has `ExecReload=`
 			sudo systemctl reload "$service_name" 2>/dev/null || sudo systemctl restart "$service_name"
 		else
-			# 文件内容已变
+			# config changed.
 			echo "Status: Config changed → Updating and Restarting..."
 			sudo install -m 644 "$source_fpath" "$target_fpath"
 			sudo systemctl daemon-reload
@@ -170,14 +170,26 @@ deploy_gunicorn_systemd_service() {
 	fi
 
 	# 5. check results
-	sleep 1 # wait some time
+	echo "Waiting for $service_name to become active..."
+	timeout=120
+	while [ $timeout -gt 0 ]; do
+		if sudo systemctl is-active --quiet "$service_name"; then
+			echo -e "\nResult: $service_name is successfully running. ✅"
+			break
+		else
+			# \r 让光标回到行首，-n 确保不换行
+			echo -ne "\rWaiting for $service_name... (Timeout remaining: ${timeout}s)   "
+			sleep 5
+			timeout=$((timeout - 5))
+		fi
+	done
+
 	if sudo systemctl is-active --quiet "$service_name"; then
-		echo "Result: $service_name is successfully running."
+		echo "Service status:"
+		sudo systemctl --no-pager --full status "$service_name"
 	else
 		echo "Result: $service_name failed to start. Check 'journalctl -u $service_name' for logs."
 		return 1
 	fi
-	echo "Service status:"
-	# will trigger exit if status isn't running
-	sudo systemctl --no-pager --full status "$service_name"
+
 }
