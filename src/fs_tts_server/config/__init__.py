@@ -1,6 +1,6 @@
 import os
 
-from fs_pyutils.log_builder import build_logger
+from fs_pyutils.log_builder import SyslogLogField, build_logger
 
 from .constant import TTS_MODEL2QUALITY_VALUE
 from .data_types import Env
@@ -25,11 +25,8 @@ else:
 
 CONF = _app_conf
 
-LOGGER = build_logger(
-  CONF.app_name,
-  CONF.log_level,
-  syslog_address=CONF.syslog_addr,
-  domain=CONF.app_domain,
-)
+
+_syslog_field = SyslogLogField(host=CONF.app_domain, tag="tts_fastapi")
+LOGGER = build_logger(CONF.app_name, CONF.log_level, syslog_address=CONF.syslog_addr, syslog_log_field=_syslog_field)
 
 LOGGER.info(f"Loaded client and server environmental vars for ENV={env}")

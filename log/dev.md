@@ -1,7 +1,7 @@
 ## How to start dev
 
 1. push to main
-2. merge main to release, then it will trigger the deployment
+2. merge main to release, then it will trigger the deployment （使用 gh pr create, gh pr merge 来快速完成）
 3. pay attention to the self dependency of `fs_pyutils`: use  `uv sync --upgrade-package fs_pyutils` to sync if we have changed something.
 
 -----

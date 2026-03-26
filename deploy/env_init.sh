@@ -44,7 +44,7 @@ fi
 # 2. private repo that contains config file (used for config loading) has already been cloned.
 # Then **fill/change** the following ENV vars so we can then run the `project_init.sh`
 
-SYSTEMD_SERVICE_NAME="tts-server-fastapi"
+SYSTEMD_SERVICE_FILE_NAME="tts-server-fastapi.service"
 GUNICORN_BIN_PATH="${PROJECT_ROOT_LOCAL_DIR}/.venv/bin/gunicorn"
 
 # 如果存在 .machine.env，则引入它
@@ -57,9 +57,10 @@ fi
 : "${ENV:="prod"}"
 : "${CONF_SYNC_GIT_REPO_LOCAL_DIR:="/root/github/private-conf/web/tts-server/config"}"
 : "${NGINX_SYSTEM_CONF_DIR:="/etc/nginx/conf.d"}"
-# following 2 are required by GunicornSyslogLogger
+# following 3 are required by GunicornSyslogLogger
 : "${SYSLOG_ADDRESS:="127.0.0.1:11514"}"
-: "${HOSTNAME:="tts_fastapi"}"
+: "${SYSLOG_HOSTNAME:="tts.fastapi"}"
+: "${SYSLOG_TAG:="tts_fastapi"}"
 
 cat >$SCRIPT_DIR/.env <<EOF
 
@@ -67,13 +68,13 @@ ENV="$ENV"
 PROJECT_ROOT_LOCAL_DIR="$PROJECT_ROOT_LOCAL_DIR"
 CONF_SYNC_GIT_REPO_LOCAL_DIR="$CONF_SYNC_GIT_REPO_LOCAL_DIR"
 NGINX_SYSTEM_CONF_DIR="$NGINX_SYSTEM_CONF_DIR"
-SYSTEMD_SERVICE_NAME="$SYSTEMD_SERVICE_NAME"
+SYSTEMD_SERVICE_FILE_NAME="$SYSTEMD_SERVICE_FILE_NAME"
 PATH="$PATH"
 
 EOF
 
 # write the systemd service file.
-cat >"$SCRIPT_DIR/$SYSTEMD_SERVICE_NAME.service" <<EOF
+cat >"$SCRIPT_DIR/$SYSTEMD_SERVICE_FILE_NAME" <<EOF
 
 [Unit]
 Description=TTS-Server FastAPI App
@@ -92,7 +93,8 @@ Environment="PATH=$PATH"
 Environment="ENV=$ENV"
 # required by gunicorn & fastapi service logger
 Environment="SYSLOG_ADDRESS=$SYSLOG_ADDRESS"
-Environment="HOSTNAME=$HOSTNAME"
+Environment="SYSLOG_HOSTNAME=$SYSLOG_HOSTNAME"
+Environment="SYSLOG_TAG=$SYSLOG_TAG"
 # Note: I set worker=1.
 # It's better to directly use gunicorn instead of use 'uv run gunicorn'
 # as the main process need to interact with the systemd
