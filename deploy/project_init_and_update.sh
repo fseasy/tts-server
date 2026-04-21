@@ -86,7 +86,7 @@ uv sync --frozen --no-dev # --frozen 保证不修改 lock 文件，--no-dev 只�
 
 #! 2. assert conf (it should be prepared before this step)
 # enter the private repo to fetch the latest conf 2. link it to the project inside
-CONF_PATH="$PROD_CONF_PROJECT_INSIDE_DIR/${ENV}.py"
+CONF_PATH="$PROJECT_ROOT_LOCAL_DIR/src/fs_tts_server/config/${ENV}.py"
 echo "🐟 assert $CONF_PATH exists"
 test -f "$CONF_PATH" || {
 	echo "错误: Conf 文件不存在 $CONF_PATH"
