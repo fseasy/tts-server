@@ -84,9 +84,7 @@ else
 fi
 # - prepare uv env
 ## it will create env, install dependency (without dev group). it'll also install self as editable package
-uv sync --frozen --no-dev # --frozen 保证不修改 lock 文件，--no-dev 只装生产依赖
-## fix the role
-sudo chown -R "$SVC_USER:$SVC_GROUP" "$PROJECT_ROOT_LOCAL_DIR/.venv"
+sudo -u $SVC_USER uv sync --frozen --no-dev # --frozen 保证不修改 lock 文件，--no-dev 只装生产依赖
 
 #! 2. assert conf (it should be prepared before this step)
 # enter the private repo to fetch the latest conf 2. link it to the project inside
