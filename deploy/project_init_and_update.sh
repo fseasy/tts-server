@@ -62,7 +62,6 @@ echo "🚀 Starting in $MODE mode..."
 # check env
 : "${ENV?env-var ENV is required}"
 : "${PROJECT_ROOT_LOCAL_DIR?env-var PROJECT_ROOT_LOCAL_DIR is required}"
-: "${CONF_SYNC_GIT_REPO_LOCAL_DIR?env-var CONF_SYNC_GIT_REPO_LOCAL_DIR is required}"
 : "${NGINX_SYSTEM_CONF_DIR?env-var NGINX_SYSTEM_CONF_DIR is required}"
 : "${SYSTEMD_SERVICE_FILE_NAME?env-var SYSTEMD_SERVICE_FILE_NAME is required}"
 
@@ -72,7 +71,7 @@ cd $PROJECT_ROOT_LOCAL_DIR
 # sync repo if need
 if [[ "$MODE" == "serving" ]]; then
 	# 生产模式：强制同步
-	git_update_to_branch "$PROJECT_ROOT_LOCAL_DIR" "release"
+	echo "⚠️  Mode is [serving]: files will be sync from github actions"
 elif [[ "$MODE" == "deving" ]]; then
 	# 开发模式：跳过同步
 	echo "⚠️  Mode is [deving]: Skipping git sync to preserve local changes."

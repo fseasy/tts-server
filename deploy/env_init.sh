@@ -55,7 +55,6 @@ fi
 
 # 3. 使用 : "${VAR:=DEFAULT}" 语法: 如果变量未设置或为空，则赋值为等号后面的默认值
 : "${ENV:="prod"}"
-: "${CONF_SYNC_GIT_REPO_LOCAL_DIR:="/root/github/private-conf/web/tts-server/config"}"
 : "${NGINX_SYSTEM_CONF_DIR:="/etc/nginx/conf.d"}"
 # following 3 are required by GunicornSyslogLogger
 : "${SYSLOG_ADDRESS:="127.0.0.1:11514"}"
@@ -66,7 +65,6 @@ cat >$SCRIPT_DIR/.env <<EOF
 
 ENV="$ENV"
 PROJECT_ROOT_LOCAL_DIR="$PROJECT_ROOT_LOCAL_DIR"
-CONF_SYNC_GIT_REPO_LOCAL_DIR="$CONF_SYNC_GIT_REPO_LOCAL_DIR"
 NGINX_SYSTEM_CONF_DIR="$NGINX_SYSTEM_CONF_DIR"
 SYSTEMD_SERVICE_FILE_NAME="$SYSTEMD_SERVICE_FILE_NAME"
 PATH="$PATH"
@@ -81,13 +79,11 @@ Description=TTS-Server FastAPI App
 After=network.target
 
 [Service]
-# NOTE: use notify instead of simple! Gunicorn support it, don't listen to LLM
 Type=notify
 NotifyAccess=all
 
-# NOTE: here I just set it to root. Change as your actual condition.
-User=root
-Group=root
+User=www-service
+Group=www-service
 WorkingDirectory=$PROJECT_ROOT_LOCAL_DIR
 Environment="PATH=$PATH"
 Environment="ENV=$ENV"
