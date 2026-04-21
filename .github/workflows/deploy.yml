@@ -39,10 +39,16 @@ jobs:
           # 执行同步
           # --exclude 用于忽略当前目录或者保留目标侧目录
           rsync -avz --delete \
+            --exclude="/db/" \
             --exclude="/.git/" \
             --exclude="/.github/" \
             --exclude="/.venv/" \
-            --exclude="/db/" \
+            --exclude="__pycache__/" \
+            --exclude="*.pyc" \
+            --exclude="*.pyo" \
+            --exclude="*.pyd" \
+            --exclude=".pytest_cache/" \
+            --exclude=".DS_Store" \
             -e "ssh -p ${{ secrets.PORT }}" \
             ./ ${{ secrets.USER }}@${{ secrets.HOST }}:${{ secrets.DEPLOY_DIR }}
 
