@@ -84,13 +84,14 @@ fi
 ## it will create env, install dependency (without dev group). it'll also install self as editable package
 uv sync --frozen --no-dev # --frozen 保证不修改 lock 文件，--no-dev 只装生产依赖
 
-#! 2. prepare conf from another private repo
+#! 2. assert conf (it should be prepared before this step)
 # enter the private repo to fetch the latest conf 2. link it to the project inside
-echo "🐟 Pull the config file ${ENV}.py from ${CONF_SYNC_GIT_REPO_LOCAL_DIR} git repo"
-git_update_to_branch $CONF_SYNC_GIT_REPO_LOCAL_DIR "main"
-PROD_CONF_PROJECT_INSIDE_DIR="$PROJECT_ROOT_LOCAL_DIR/src/fs_tts_server/config"
-mkdir -p $PROD_CONF_PROJECT_INSIDE_DIR
-safe_ln_test_and_link "$PROD_CONF_PROJECT_INSIDE_DIR/${ENV}.py" "$CONF_SYNC_GIT_REPO_LOCAL_DIR/${ENV}.py"
+CONF_PATH="$PROD_CONF_PROJECT_INSIDE_DIR/${ENV}.py"
+echo "🐟 assert $CONF_PATH exists"
+test -f "$CONF_PATH" || {
+	echo "错误: Conf 文件不存在 $CONF_PATH"
+	exit 1
+}
 
 #! 3. install/update gunicorn services for fastapi, start/reload/restart services
 deploy_gunicorn_systemd_service "${SCRIPT_DIR}/$SYSTEMD_SERVICE_FILE_NAME"
@@ -98,9 +99,8 @@ deploy_gunicorn_systemd_service "${SCRIPT_DIR}/$SYSTEMD_SERVICE_FILE_NAME"
 #! 4. restart nginx
 echo "🐟 Nginx: Link conf & Test config & Restart"
 _args=(
-	"$NGINX_SYSTEM_CONF_DIR/tts-server.conf"          # tgt
-	"$CONF_SYNC_GIT_REPO_LOCAL_DIR/nginx.${ENV}.conf" # test-src1: private conf dir
-	"$SCRIPT_DIR/nginx.${ENV}.conf"                   # test-src2: local conf dir
+	"$NGINX_SYSTEM_CONF_DIR/tts-server.conf" # tgt
+	"$SCRIPT_DIR/nginx.${ENV}.conf"          # test-src: local conf dir
 )
 safe_ln_test_and_link "${_args[@]}"
 sudo nginx -t
