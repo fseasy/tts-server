@@ -64,6 +64,8 @@ echo "🚀 Starting in $MODE mode..."
 : "${PROJECT_ROOT_LOCAL_DIR?env-var PROJECT_ROOT_LOCAL_DIR is required}"
 : "${NGINX_SYSTEM_CONF_DIR?env-var NGINX_SYSTEM_CONF_DIR is required}"
 : "${SYSTEMD_SERVICE_FILE_NAME?env-var SYSTEMD_SERVICE_FILE_NAME is required}"
+: "${SVC_USER?env-var SVC_USER is required}"
+: "${SVC_GROUP?env-var SVC_GROUP is required}"
 
 #! 1. update project root dir & setup env by uv
 echo "🐟 Sync repos"
@@ -83,6 +85,8 @@ fi
 # - prepare uv env
 ## it will create env, install dependency (without dev group). it'll also install self as editable package
 uv sync --frozen --no-dev # --frozen 保证不修改 lock 文件，--no-dev 只装生产依赖
+## fix the role
+sudo chown -R "$SVC_USER:$SVC_GROUP" "$PROJECT_ROOT_LOCAL_DIR/.venv"
 
 #! 2. assert conf (it should be prepared before this step)
 # enter the private repo to fetch the latest conf 2. link it to the project inside
