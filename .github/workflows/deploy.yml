@@ -12,23 +12,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
-      - name: Create secrets file
-        env:
-          REPO_CONF_CONTENT: ${{ secrets.PROD_CONF_PY_CONTENT }}
-          NGINX_CONF_CONTENT: ${{ secrets.PROD_NGINX_CONF_CONTENT }}
-        run: |
-          # write repo config
-          REPO_CONF_DIR="./src/fs_tts_server/config"
-          mkdir -p $REPO_CONF_DIR
-          printf "%s" "$REPO_CONF_CONTENT" > "$REPO_CONF_DIR/prod.py"
-            # 检查文件是否创建成功（不打印内容，只打印行数以保密）
-          echo "Created $REPO_CONF_DIR/prod.py with $(wc -l < $REPO_CONF_DIR/prod.py) lines"
-
-          # write nginx config (write it to deploy dir and deploy scripts will move it to target place)
-          NGINX_TGT_PATH="./deploy/nginx.prod.conf"
-          printf "%s" "$NGINX_CONF_CONTENT" > "$NGINX_TGT_PATH"
-
       - name: Deploy via Rsync and Trigger Update
         run: |
           eval $(ssh-agent -s)
